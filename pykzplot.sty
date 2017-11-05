@@ -1,0 +1,36 @@
+\NeedsTeXFormat{LaTeX2e}[1994/06/01]
+\ProvidesPackage{pykzplot}[2017/11/03]
+
+\RequirePackage{tikz}
+\RequirePackage{environ}
+
+\def\tikzscale{1}
+
+% Code by Philippe Goutet
+% (https://tex.stackexchange.com/a/6391/30012)
+\newsavebox{\measure@tikzpicture}
+\NewEnviron{pykzplotwidth}[1]{%
+  \def\tikzscale{1}%
+  \def\iter{%
+    \begin{lrbox}{\measure@tikzpicture}%
+      \BODY
+    \end{lrbox}%
+    \pgfmathparse{\tikzscale*#1/\wd\measure@tikzpicture}%
+    \edef\tikzscale{\pgfmathresult}%
+  }%
+  \iter
+  \iter
+  \iter
+  \iter
+  \iter
+  \iter
+  \iter
+  \iter
+  \iter
+  \iter
+  \BODY
+}
+
+
+
+\endinput
