@@ -1,0 +1,88 @@
+\NeedsTeXFormat{LaTeX2e}[1994/06/01]
+\ProvidesPackage{plotz}[2017/11/03]
+
+\RequirePackage{amsmath,amssymb,amsfonts}
+\RequirePackage{tikz}
+\usetikzlibrary{arrows.meta}
+
+\newsavebox\plotz@boxlegend
+
+\def\@plotz{%
+  \savebox{\plotz@boxlegend}{%
+    \begin{tikzpicture}%
+      \plotz@legend%
+      \fill[white](current bounding box.south west)
+         rectangle(current bounding box.north east);
+      \plotz@legend%
+    \end{tikzpicture}%
+  }%
+  \begin{tikzpicture}%
+    [x=\plotz@scalex*\plotz@scale,y=\plotz@scaley*\plotz@scale]%
+    \plotz@background%
+    \if\plotz@draft0\plotz@lines\fi%
+    \plotz@foreground%
+  \end{tikzpicture}%
+}%
+
+\newcommand{\plotz}{%
+  \@ifstar\plotz@star\plotz@nostar%
+}
+
+\newcommand{\plotz@nostar}[1]{%
+  \input{#1}%
+  \def\plotz@scale{1}
+  \def\plotz@draft{0}%
+  \@plotz%
+}
+
+\newsavebox{\plotz@box}
+\newcounter{plotz@iter}
+\newcommand{\plotz@star}[2]{%
+  \input{#2}%
+  \def\plotz@scale{1.00000}%
+  \def\plotz@error{1.00000}
+  \def\plotz@draft{1}%
+  \def\plotz@space{ }%
+  \setcounter{plotz@iter}{1}
+  \message{^^Jplotz*^^J}
+  \def\iter{%
+    % Update scale
+    \pgfmathparse{\plotz@scale * \plotz@error}%
+    \edef\plotz@scale{\pgfmathresult}
+    % Compile plot
+    \sbox\plotz@box\@plotz%
+    % Compare box and target size
+    \pgfmathparse{#1/\wd\plotz@box}%
+    \edef\plotz@error{\pgfmathresult}%
+    \pgfmathparse{\plotz@error - 1}%
+    \message{ \plotz@space iter \theplotz@iter:
+      \plotz@scale\plotz@space%
+      -> \pgfmathresult^^J}% 
+    %
+    \let\next=\iter%
+    %
+    % Convergence?
+    \pgfmathparse{abs(\pgfmathresult) < 0.01}% 
+    \if\pgfmathresult1%
+      \ifnum\theplotz@iter>1%
+        \message{#2:0: change the plot scale to avoid iterations:^^J}
+        \message{ \plotz@space plot.scale *= \plotz@scale^^J}%
+      \fi%
+      \let\next=\relax%
+    \fi%
+    % Max iter reached?
+    \stepcounter{plotz@iter}%
+    \ifnum\theplotz@iter>10%
+      \let\next=\relax%
+    \fi%
+    %
+    % Tail recursive call
+    \next%
+  }%
+  \iter%
+  \def\plotz@draft{0}%
+  \@plotz%
+}
+
+
+\endinput
