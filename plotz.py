@@ -24,6 +24,7 @@ import tempfile
 import os
 import shutil
 import subprocess
+import math
 
 class TmpDir(object):
     """Temporary directory
@@ -31,7 +32,7 @@ Useable in a `with` statement. Automatically takes care of deleting itself."""
     #pylint: disable=too-few-public-methods
 
     def __init__(self):
-        self._name = tempfile.mkdtemp(prefix="pykzplot")
+        self._name = tempfile.mkdtemp(prefix="plotz")
 
     def __enter__(self):
         return self._name
@@ -171,8 +172,8 @@ Pretty print regular values and use 10^x in the case of logarithmic scale."""
                 delta *= 10
                 factor *= 10
             self.tick = round(delta/5.) / factor
-            self.min = round(self.min*factor) / factor
-            self.max = round(self.max*factor) / factor
+            self.min = math.floor(self.min*factor) / factor
+            self.max = math.ceil(self.max*factor) / factor
 
         if self.ticks is None:
             self.ticks = []
@@ -243,7 +244,7 @@ class Legend(object):
             line = ""
 
         self._latex.append(r"\draw[line%s](0,%fem)%s(2em,%fem)" % (index, y, line, y)
-                           + r"node[right, inner sep=2pt]{\strut %s};" % title)
+                           + r"node[right, inner sep=2pt, black]{\strut %s};" % title)
         if marker:
             self._latex.append(r"\node[line%s]at(1em,%fem){\marker%s};" % (index, y, index))
 
@@ -258,6 +259,8 @@ class Plot:
         self.x = Axis(1)
         self.y = Axis(2)
         self._legend = Legend()
+
+        self.title = None
 
         self.size_x = 266.66
         self.size_y = 200.00
@@ -395,6 +398,14 @@ class Plot:
     def tikz(self, tikz):
         self.latex.append("/foreground", tikz)
 
+    def _title (self):
+        if self.title is not None:
+            self.latex.append("/background/legend",
+                              r"\node(title)at(current bounding box.north){};")
+
+            self.latex.append("/foreground",
+                              r"\draw(title)++(0,1em)node[anchor=south]{%s};"
+                              % self.title)
 
     def _index(self, line=None):
         index = self.line
@@ -417,6 +428,7 @@ class Plot:
                           % (self.size_y*self.scale / (self.y.max-self.y.min)))
 
         self.latex.append("/legend", self._legend.latex())
+        self._title()
 
         self.x.update()
         self.y.update()
