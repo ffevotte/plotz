@@ -1,3 +1,24 @@
+# -*- coding: utf-8 -*-
+#
+# This file is part of PlotZ, a plotting library
+#
+# Copyright (C) 2017
+#   F. Févotte     <fevotte@gmail.com>
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License as
+# published by the Free Software Foundation; either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, see <http://www.gnu.org/licenses/>.
+# The GNU General Public License is contained in the file COPYING.
+
 import sys
 import tempfile
 import os
@@ -64,15 +85,15 @@ class LatexOutput:
         index.clear()
 
     def write(self, f):
-        def _write(f,l):
+        def _write(f, l):
             if isinstance(l, str):
                 f.write(l+"%\n")
             else:
                 for ll in l:
                     _write(f, ll)
-        #
+
         for l in self._lines:
-            _write(f,l)
+            _write(f, l)
 
 
 def ppfloat(x, fmt="%f"):
@@ -195,16 +216,16 @@ Pretty print regular values and use 10^x in the case of logarithmic scale."""
         if self.label is not None:
             latex.append("/background/ticks",
                          r"\draw (%s)++(%s)"
-                         % (self._coord(0.5*(self.min+self.max),position),
+                         % (self._coord(0.5*(self.min+self.max), position),
                             self._coord(0, "-%fem"%self.label_shift)) +
                          r"node[%s]{%s};" % (label_options, self.label))
 
         # Ticks
         for (x, label) in self.ticks:
             latex.append("/background/ticks", [
-                r"\draw(%s)++(%s)--++(%s)" % (self._coord(x,position),
-                                              self._coord(0,"0.5em"),
-                                              self._coord(0,"-1em")),
+                r"\draw(%s)++(%s)--++(%s)" % (self._coord(x, position),
+                                              self._coord(0, "0.5em"),
+                                              self._coord(0, "-1em")),
                 r"   node[%s]{%s};" % (tick_options, label)])
 
 class Legend(object):
@@ -213,7 +234,7 @@ class Legend(object):
         self._latex = []
 
     def add(self, line, marker, index, title):
-        y = 1.1 * self._index
+        y = 1.5 * self._index
         self._index -= 1
 
         if line:
@@ -331,7 +352,7 @@ class Plot:
             self.y.min = min(y, self.y.min)
             self.y.max = max(y, self.y.max)
 
-            self.latex.append("/lines", "%s(%.15f,%.15f)%s"%(line,x,y,points))
+            self.latex.append("/lines", "%s(%.15f,%.15f)%s"%(line, x, y, points))
 
         if line:
             line = "--"
@@ -344,7 +365,7 @@ class Plot:
             points = ""
 
         first = True
-        for (x,y) in data:
+        for (x, y) in data:
             if first:
                 first = False
                 coord("  ", x, y)
@@ -390,8 +411,10 @@ class Plot:
         if exc_type is not None:
             return
 
-        self.latex.append("/scale", r"\def\plotz@scalex{%f}" % (self.size_x*self.scale / (self.x.max-self.x.min)))
-        self.latex.append("/scale", r"\def\plotz@scaley{%f}" % (self.size_y*self.scale / (self.y.max-self.y.min)))
+        self.latex.append("/scale", r"\def\plotz@scalex{%f}"
+                          % (self.size_x*self.scale / (self.x.max-self.x.min)))
+        self.latex.append("/scale", r"\def\plotz@scaley{%f}"
+                          % (self.size_y*self.scale / (self.y.max-self.y.min)))
 
         self.latex.append("/legend", self._legend.latex())
 
@@ -426,7 +449,7 @@ class Plot:
                              self._output+".pdf"])
 
 
-def Function(fun, samples=100, range=(0,1)):
+def Function(fun, samples=100, range=(0, 1)):
     x0 = range[0]
     x1 = range[1]
     dx = float(x1-x0)/(samples-1)
@@ -439,7 +462,7 @@ def columns(i, j):
         return (fields[i], fields[j])
     return fun
 
-def DataFile(filename, fun=columns(0,1)):
+def DataFile(filename, fun=columns(0, 1)):
     with open(filename, "r") as f:
         for line in f:
             fields = [float(v) for v in line.strip().split(" ")]
@@ -451,10 +474,10 @@ def test1():
     import numpy
 
     N = 100
-    data = numpy.zeros((N,3))
+    data = numpy.zeros((N, 3))
     for i in xrange(N):
         x = (i+0.5)*1/float(N)
-        data[i,:] = [x, math.sin(math.pi*x), math.sin(math.pi*x*2)]
+        data[i, :] = [x, math.sin(math.pi*x), math.sin(math.pi*x*2)]
 
     with Plot("test") as plot:
         plot.x.label = "$x$"
@@ -466,14 +489,14 @@ def test1():
         plot.size_y *= 0.8
         #plot.scale *= 1.63208
 
-        plot.plot(Function(lambda x: math.sin(0.5*math.pi*x), samples=50, range=(0,1)),
+        plot.plot(Function(lambda x: math.sin(0.5*math.pi*x), samples=50, range=(0, 1)),
                   line=False, points=True,
                   title=r"function $\sin(\frac{\pi x}{2})$")
 
         plot.plot(DataFile("essai.dat"),
                   title="data file")
 
-        plot.plot(data[:, [0,2]],
+        plot.plot(data[:, [0, 2]],
                   title="numpy array")
 
         plot.tikz(r"""
