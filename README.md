@@ -14,7 +14,7 @@ If you are plotting graphs for scientific publication, chances are that
 documents. It is designed to be as simple to use as possible, with a Python API
 allowing to produce, post-process and plot your data in the same environment.
 
-<img src="examples/figure.png?raw=true" width="600px" alt="Example plot" />
+<img src="examples/00-base/00-base.svg?raw=true&sanitize=true" width="600px" alt="Example plot" />
 
 
 ## Installation
@@ -60,7 +60,7 @@ python myplot.py
 You should get two files:
 
 - `myfigure.pdf` is a rendered version of your figure (similar to the image
-  shown above, except it is not rasterized),
+  shown above),
 - `myfigure.tex` is a LaTeX file that you can import in a LaTeX document
 
 
