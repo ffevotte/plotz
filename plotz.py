@@ -348,14 +348,15 @@ class Plot:
 
         def coord(line, x, y):
             x = self.x.scale(x)
+            y = self.y.scale(y)
+            self.latex.append("/lines", "%s(%.15f,%.15f)%s"%(line, x, y, points))
+
             self.x.min = min(x, self.x.min)
             self.x.max = max(x, self.x.max)
 
-            y = self.y.scale(y)
             self.y.min = min(y, self.y.min)
             self.y.max = max(y, self.y.max)
 
-            self.latex.append("/lines", "%s(%.15f,%.15f)%s"%(line, x, y, points))
 
         if line:
             line = "--"
@@ -369,11 +370,14 @@ class Plot:
 
         first = True
         for (x, y) in data:
-            if first:
-                first = False
-                coord("  ", x, y)
-            else:
-                coord(line, x, y)
+            try:
+                if first:
+                    coord("  ", x, y)
+                    first = False
+                else:
+                    coord(line, x, y)
+            except:
+                pass
 
         self.latex.append("/lines", ";")
 
@@ -422,6 +426,11 @@ class Plot:
         if exc_type is not None:
             return
 
+        self.x.update()
+        self.y.update()
+        self.x.output(self.y.min, self.latex)
+        self.y.output(self.x.min, self.latex)
+
         self.latex.append("/scale", r"\def\plotz@scalex{%f}"
                           % (self.size_x*self.scale / (self.x.max-self.x.min)))
         self.latex.append("/scale", r"\def\plotz@scaley{%f}"
@@ -430,10 +439,6 @@ class Plot:
         self.latex.append("/legend", self._legend.latex())
         self._title()
 
-        self.x.update()
-        self.y.update()
-        self.x.output(self.y.min, self.latex)
-        self.y.output(self.x.min, self.latex)
 
         with TmpDir() as tmp:
             with open(os.path.join(tmp, "standalone.tex"), "w") as f:
