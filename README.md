@@ -14,7 +14,8 @@ If you are plotting graphs for scientific publication, chances are that
 documents. It is designed to be as simple to use as possible, with a Python API
 allowing to produce, post-process and plot your data in the same environment.
 
-<img src="examples/00-base/00-base.svg?raw=true&sanitize=true" width="600px" alt="Example plot" />
+<img src="examples/00-base/plot.svg?raw=true&sanitize=true" width="600px"
+     alt="Example plot" />
 
 
 ## Installation
@@ -24,7 +25,7 @@ file to setup the relevant environment variables:
 
 ```sh
 git clone https://github.com/ffevotte/plotz.git
-source /path/to/plotz/env.sh
+source plotz/env.sh
 ```
 
 
@@ -89,6 +90,25 @@ For example:
 \end{document}
 ```
 
+
+You can also use the `plotz*` command, which takes as first argument the desired
+figure width. The plot will then be scaled automatically so as to respect the
+requested size.
+
+```latex
+\begin{figure}[ht]
+  \centering
+  \plotz*{\textwidth}{myfigure}
+  \caption{A \texttt{PlotZ} figure, scaled so that it spans the entire page width}
+\end{figure}
+```
+
+Notice how this differs from a simple scaling (such as what would be obtained
+using `\resizebox{\textwidth}{!}{...}` or
+`\includegraphics[width=\textwidth]{...}`) in that lines thicknesses, font
+sizes, *etc.* remain constant.
+
+<p style="margin-top: 5em"></p>
 
 ## Contributing
 

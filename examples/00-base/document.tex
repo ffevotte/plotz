@@ -1,0 +1,40 @@
+\documentclass{article}
+\usepackage[a4paper, margin=2cm]{geometry}
+\usepackage{plotz}
+
+\title{Basic \texttt{PlotZ} example}
+\date{}
+\author{}
+
+\begin{document}
+\maketitle
+
+Figure~\ref{fig:plotz} shows a typical \texttt{PlotZ} figure.
+
+%plotz
+\begin{figure}[h]
+  \centering
+  \plotz{plot}
+  \caption{A \texttt{PlotZ} plot}
+  \label{fig:plotz}
+\end{figure}
+%plotz
+
+\vfill
+
+In figure~\ref{fig:plotz*}, the same plot has been rescaled so that two
+subfigures fit nicely side by side in the page. Notice how the font size, line
+thickness, \textit{etc.} remain constant; only the axes scale is adjusted.
+
+%plotz*
+\begin{figure}[h]
+  \centering
+  \plotz*{0.45\textwidth}{plot}%
+  \hfill%
+  \plotz*{0.45\textwidth}{plot}
+  \caption{Two \texttt{PlotZ} pictures scaled down to fit side by side.}
+  \label{fig:plotz*}
+\end{figure}
+%plotz*
+
+\end{document}

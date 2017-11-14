@@ -1,7 +1,7 @@
 from plotz import *
 from math import sin, pi
 
-with Plot("00-base") as p:
+with Plot("plot") as p:
     p.title = r"My first \texttt{PlotZ} plot"
     p.x.label = "$x$"
     p.y.label = "$y$"
