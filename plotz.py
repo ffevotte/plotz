@@ -331,7 +331,7 @@ class Plot:
                            [r"\definecolor{color%d}{HTML}{%s}" % (i+1, c[i])
                             for i in xrange(len(c))])
 
-    def lineStyle(self, index, style):
+    def line_style(self, index, style):
         self.latex.append("/header/lines",
                           r"\tikzset{line%s/.append style={%s}}" % (self._index(index), style))
 
@@ -467,8 +467,12 @@ class Plot:
 
 
 def Function(fun, samples=100, range=(0, 1)):
-    x0 = range[0]
-    x1 = range[1]
+    if isinstance(range, Axis):
+        x0 = range.min
+        x1 = range.max
+    else:
+        x0 = range[0]
+        x1 = range[1]
     dx = float(x1-x0)/(samples-1)
     for i in xrange(samples):
         x = x0 + i*dx
