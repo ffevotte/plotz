@@ -310,22 +310,22 @@ class Plot:
         """Setup a colormap"""
 
         # Default colormap
-        c = ["377eb8", "e41a1c", "4daf4a", "984ea3", "ff7f00", "a65628", "f781bf", "ffff33"]
+        c = ["377EB8", "E41A1C", "4DAF4A", "984EA3", "FF7F00", "A65628", "F781BF", "FFFF33"]
 
         if name == "paired":
-            c = ['a6cee3', '1f78b4', 'b2df8a', '33a02c', 'fb9a99', 'e31a1c', 'fdbf6f', 'ff7f00']
+            c = ['A6CEE3', '1F78B4', 'B2DF8A', '33A02C', 'FB9A99', 'E31A1C', 'FDBF6F', 'FF7F00']
         if name == "dark":
-            c = ['1b9e77', 'd95f02', '7570b3', 'e7298a', '66a61e', 'e6ab02', 'a6761d', '666666']
+            c = ['1B9E77', 'D95F02', '7570B3', 'E7298A', '66A61E', 'E6AB02', 'A6761D', '666666']
         if name == "spectral8":
-            c = ['d53e4f', 'f46d43', 'fdae61', 'fee08b', 'e6f598', 'abdda4', '66c2a5', '3288bd']
+            c = ['D53E4F', 'F46D43', 'FDAE61', 'FEE08B', 'E6F598', 'ABDDA4', '66C2A5', '3288BD']
         if name == "spectral7":
-            c = ['d53e4f', 'fc8d59', 'fee08b', 'ffffbf', 'e6f598', '99d594', '3288bd']
+            c = ['D53E4F', 'FC8D59', 'FEE08B', 'FFFFBF', 'E6F598', '99D594', '3288BD']
         if name == "spectral6":
-            c = ['d53e4f', 'fc8d59', 'fee08b', 'e6f598', '99d594', '3288bd']
+            c = ['D53E4F', 'FC8D59', 'FEE08B', 'E6F598', '99D594', '3288BD']
         if name == "spectral5":
-            c = ['d7191c', 'fdae61', 'ffffbf', 'abdda4', '2b83ba']
+            c = ['D7191C', 'FDAE61', 'FFFFBF', 'ABDDA4', '2B83BA']
         if name == "spectral4":
-            c = ['d7191c', 'fdae61', 'abdda4', '2b83ba']
+            c = ['D7191C', 'FDAE61', 'ABDDA4', '2B83BA']
 
         self.latex.replace("/header/colors",
                            [r"\definecolor{color%d}{HTML}{%s}" % (i+1, c[i])
