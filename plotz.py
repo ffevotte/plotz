@@ -25,6 +25,7 @@ import os
 import shutil
 import subprocess
 import math
+import re
 
 class TmpDir(object):
     """Temporary directory
@@ -339,7 +340,7 @@ class Plot:
         self.latex.append("/header/markers",
                           r"\def\marker%s{%s}"%(self._index(index), marker))
 
-    def plot(self, data, title=None, line=True, points=False):
+    def plot(self, data, col=(0,1), title=None, line=True, points=False):
         self.line += 1
         if title is not None:
             self._legend.add(line, points, self._index(), title)
@@ -369,7 +370,9 @@ class Plot:
             points = ""
 
         first = True
-        for (x, y) in data:
+        for row in data:
+            x = row[col[0]]
+            y = row[col[1]]
             try:
                 if first:
                     coord("  ", x, y)
@@ -483,11 +486,27 @@ def columns(i, j):
         return (fields[i], fields[j])
     return fun
 
-def DataFile(filename, fun=columns(0, 1)):
+
+def DataFile(filename, sep=re.compile("\s+"), comment="#"):
     with open(filename, "r") as f:
         for line in f:
-            fields = [float(v) for v in line.strip().split(" ")]
-            yield fun(fields)
+            if line.startswith(comment):
+                continue
+
+            try:
+                fields = line.split(sep)
+            except TypeError:
+                fields = sep.split(line)
+
+            print fields
+            for i in xrange(len(fields)):
+                try:
+                    fields[i] = float(fields[i])
+                except ValueError:
+                    fields[i] = float("nan")
+
+            print fields
+            yield fields
 
 
 def test1():
