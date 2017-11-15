@@ -1,0 +1,5 @@
+document.aux
+document.fdb_latexmk
+document.fls
+document.log
+document.synctex.gz
