@@ -8,6 +8,6 @@ with Plot("plot") as p:
     p.y.label_rotate = True
 
     p.plot(Function(sin, samples=50, range=(0, pi)),
-           title=r"$\sin(\pi \, x)$")
+           title=r"$\sin(x)$")
 
     p.legend("north east")
