@@ -26,6 +26,7 @@ import shutil
 import subprocess
 import math
 import re
+import threading
 
 class TmpDir(object):
     """Temporary directory
@@ -451,7 +452,7 @@ class Plot:
                     r"\usepackage{plotz}",
                     r"\begin{document}",
                     r"\plotz{plotz}",
-                    r"\end{document}"
+                    r"\end{document}",
                 ]))
 
             with open(os.path.join(tmp, "plotz.tex"), "w") as f:
@@ -461,12 +462,34 @@ class Plot:
                              os.path.join(tmp, "plotz.tex"),
                              self._output+".tex"])
 
-            subprocess.call(["pdflatex", "standalone.tex"],
-                            cwd=tmp)
+            pdflatex = subprocess.Popen(["stdbuf", "-o0", "pdflatex", "-file-line-error", "standalone.tex"],
+                                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                        cwd=tmp)
 
-            subprocess.call(["cp",
-                             os.path.join(tmp, "standalone.pdf"),
-                             self._output+".pdf"])
+            def kill_pdflatex():
+                print "Killing pdflatex after 5 seconds"
+                pdflatex.kill()
+            timeout = threading.Timer(5, kill_pdflatex)
+            timeout.start()
+
+            context = 0
+            error = re.compile("^.+:\d+: ")
+            for line in iter(pdflatex.stdout.readline, b''):
+                timeout.cancel()
+                timeout = threading.Timer(5, kill_pdflatex)
+                timeout.start()
+                if error.match(line):
+                    context = max(context, 3)
+                if context > 0:
+                    print line,
+                    context -= 1
+
+            timeout.cancel()
+
+            if os.path.exists("standalone.pdf"):
+                subprocess.call(["cp",
+                                 os.path.join(tmp, "standalone.pdf"),
+                                 self._output+".pdf"])
 
 
 def Function(fun, samples=100, range=(0, 1)):
