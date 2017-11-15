@@ -21,10 +21,17 @@
 \ProvidesPackage{plotz}[2017/11/03]
 
 \RequirePackage{amsmath,amssymb,amsfonts}
+\RequirePackage{keyval}
 \RequirePackage{tikz}
 \usetikzlibrary{arrows.meta}
 
-\newsavebox\plotz@boxlegend
+\newsavebox{\plotz@boxlegend}
+\newsavebox{\plotz@box}
+\define@key{plotz}{width}{\edef\plotz@width{#1}}
+\define@key{plotz}{height}{\edef\plotz@height{#1}}
+\define@key{plotz}{x}{\edef\plotz@X{#1}}
+\define@key{plotz}{y}{\edef\plotz@Y{#1}}
+\setkeys{plotz}{width=!,height=!,x=1,y=1}
 
 \def\@plotz{%
   \savebox{\plotz@boxlegend}{%
@@ -36,72 +43,84 @@
     \end{tikzpicture}%
   }%
   \begin{tikzpicture}%
-    [x=\plotz@scalex*\plotz@scale,y=\plotz@scaley*\plotz@scale]%
+    [x=\plotz@scalex*\plotz@X,y=\plotz@scaley*\plotz@Y]%
     \plotz@background%
     \if\plotz@draft0\plotz@lines\fi%
     \plotz@foreground%
   \end{tikzpicture}%
 }%
 
-\newcommand{\plotz}{%
-  \@ifstar\plotz@star\plotz@nostar%
-}
-
-\newcommand{\plotz@nostar}[1]{%
-  \input{#1}%
-  \def\plotz@scale{1}
-  \def\plotz@draft{0}%
-  \@plotz%
-}
-
-\newsavebox{\plotz@box}
-\newcounter{plotz@iter}
-\newcommand{\plotz@star}[2]{%
+\newcommand{\plotz}[2][]{%
+  % Include plotz file
   \input{#2}%
-  \def\plotz@scale{1.00000}%
-  \def\plotz@error{1.00000}
+  %
+  % Parse optional parameters
+  \setkeys{plotz}{#1}%
+  %
+  % Initializations
+  \edef\plotz@Xnew{\plotz@X}%
+  \edef\plotz@Ynew{\plotz@Y}%
+  \def\s{ }%
   \def\plotz@draft{1}%
-  \def\plotz@space{ }%
-  \setcounter{plotz@iter}{1}
-  \message{^^Jplotz*^^J}
+  %
+  % Iterations
+  \newcount\plotz@iter%
   \def\iter{%
-    % Update scale
-    \pgfmathparse{\plotz@scale * \plotz@error}%
-    \edef\plotz@scale{\pgfmathresult}
-    % Compile plot
+    % Draw the plot in a box
+    \advance\plotz@iter by 1%
     \sbox\plotz@box\@plotz%
-    % Compare box and target size
-    \pgfmathparse{#1/\wd\plotz@box}%
-    \edef\plotz@error{\pgfmathresult}%
-    \pgfmathparse{\plotz@error - 1}%
-    \message{ \plotz@space iter \theplotz@iter:
-      \plotz@scale\plotz@space%
-      -> \pgfmathresult^^J}% 
+    %
+    % Adjust scales if target sizes are specified
+    \if\plotz@width!\else%
+      \pgfmathparse{\plotz@X * \plotz@width / \wd\plotz@box}%
+      \edef\plotz@Xnew{\pgfmathresult}%
+    \fi%
+    \if\plotz@height!\else%
+      \pgfmathparse{\plotz@Y * \plotz@height / \ht\plotz@box}%
+      \edef\plotz@Ynew{\pgfmathresult}%
+    \fi%
+    %
+    % Copy scales if target sizes are not specified
+    \if\plotz@width!%
+      \edef\plotz@Xnew{\plotz@Ynew}%
+    \fi
+    \if\plotz@height!%
+      \edef\plotz@Ynew{\plotz@Xnew}%
+    \fi
     %
     \let\next=\iter%
-    %
-    % Convergence?
-    \pgfmathparse{abs(\pgfmathresult) < 0.01}% 
+    % 
+    % Convergence test
+    \pgfmathparse{abs(\plotz@Xnew/\plotz@X-1) + abs(\plotz@Ynew/\plotz@Y-1)}%
+    \ifnum\the\plotz@iter=2\message{^^Jplotz iterations^^J}\fi%
+    \ifnum\the\plotz@iter>1%
+      \message{\s\s iter \the\plotz@iter: \plotz@X\s\plotz@Y\s\pgfmathresult^^J}%
+    \fi
+    \pgfmathparse{\pgfmathresult < 0.01}%
     \if\pgfmathresult1%
-      \ifnum\theplotz@iter>1%
-        \message{#2:0: change the plot scale to avoid iterations:^^J}
-        \message{ \plotz@space plot.scale *= \plotz@scale^^J}%
+      \ifnum\the\plotz@iter>1%
+        \message{#2:0: adjust the scale to avoid iterations:^^J}%
+        \message{\s\s x=\plotz@X,y=\plotz@Y^^J}%
       \fi%
       \let\next=\relax%
     \fi%
-    % Max iter reached?
-    \stepcounter{plotz@iter}%
-    \ifnum\theplotz@iter>10%
+    %
+    % Max number of iterations
+    \ifnum\the\plotz@iter=10%
       \let\next=\relax%
     \fi%
     %
-    % Tail recursive call
+    \edef\plotz@X{\plotz@Xnew}%
+    \edef\plotz@Y{\plotz@Ynew}%
     \next%
   }%
   \iter%
+  %
   \def\plotz@draft{0}%
   \@plotz%
 }
+
+
 
 
 \endinput

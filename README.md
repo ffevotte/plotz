@@ -85,7 +85,7 @@ For example:
 
 \begin{figure}[ht]
   \centering
-  \plotz{myfigure}
+  \plotz[width=0.8\textwidth]{myfigure}
   \caption{A \texttt{PlotZ} figure}
 \end{figure}
 
@@ -93,22 +93,11 @@ For example:
 ```
 
 
-You can also use the `plotz*` command, which takes as first argument the desired
-figure width. The plot will then be scaled automatically so as to respect the
-requested size.
-
-```latex
-\begin{figure}[ht]
-  \centering
-  \plotz*{\textwidth}{myfigure}
-  \caption{A \texttt{PlotZ} figure, scaled so that it spans the entire page width}
-\end{figure}
-```
-
-Notice how this differs from a simple scaling (such as what would be obtained
-using `\resizebox{\textwidth}{!}{...}` or
-`\includegraphics[width=\textwidth]{...}`) in that lines thicknesses, font
-sizes, *etc.* remain constant.
+If you specify an optional size to the `plotz` command, the plot will then be
+scaled automatically to obtain a figure of the desired size. Notice how this
+differs from a simple scaling (such as what would be obtained using
+`\resizebox{\textwidth}{!}{...}` or `\includegraphics[width=\textwidth]{...}`)
+in that lines thicknesses, font sizes, *etc.* remain constant.
 
 <p style="margin-top: 5em"></p>
 

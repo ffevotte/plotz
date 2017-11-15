@@ -40,17 +40,19 @@ The figure can be included in any LaTeX document using the `plotz` command:
 ```
 <!---plotz end -->
 
-Alternatively, the `plotz*` command can be used to rescale the `PlotZ`
-picture. In the following case, the picture is scaled down to fit two plots in
-the page width:
+Optional `width` and `height` arguments can be given to the `plotz` command. If
+specified, the `PlotZ` picture is scaled to the desired size. In the following
+case, the picture is scaled down to fit two plots in the page width. Notice how
+the font size, line thickness, \textit{etc.} remain constant; only the axes
+scales are adjusted.
 
 <!---plotz include("document.tex", "%plotz*") -->
 ```latex
 \begin{figure}[h]
   \centering
-  \plotz*{0.45\textwidth}{plot}%
+  \plotz[width=0.47\textwidth]{plot}%
   \hfill%
-  \plotz*{0.45\textwidth}{plot}
+  \plotz[width=0.47\textwidth]{plot}%
   \caption{Two \texttt{PlotZ} pictures scaled down to fit side by side.}
   \label{fig:plotz*}
 \end{figure}
