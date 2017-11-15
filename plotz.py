@@ -498,14 +498,12 @@ def DataFile(filename, sep=re.compile("\s+"), comment="#"):
             except TypeError:
                 fields = sep.split(line)
 
-            print fields
             for i in xrange(len(fields)):
                 try:
                     fields[i] = float(fields[i])
                 except ValueError:
                     fields[i] = float("nan")
 
-            print fields
             yield fields
 
 
