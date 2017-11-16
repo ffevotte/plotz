@@ -486,7 +486,7 @@ class Plot:
 
             timeout.cancel()
 
-            if os.path.exists("standalone.pdf"):
+            if os.path.exists(os.path.join(tmp, "standalone.pdf")):
                 subprocess.call(["cp",
                                  os.path.join(tmp, "standalone.pdf"),
                                  self._output+".pdf"])
