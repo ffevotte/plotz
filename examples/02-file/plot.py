@@ -1,17 +1,9 @@
 from plotz import *
 from math import sin, pi
 
-# with open("mydata.dat", "w") as gnuplot, open("mydata.csv", "w") as csv:
-#     N = 100
-#
-#     gnuplot.write("# x       \t sin(pi x) \t sin(2 pi x)\n")
-#     csv.write("# x         ; sin(3 pi x) ; sin(4 pi x)\n")
-#     for i in xrange(N+1):
-#         x = float(i)/N
-#         gnuplot.write(" \t ".join(["%.7f" % v for v in [x, sin(pi*x), sin(2*pi*x)]]) + "\n")
-#         csv.write("   ; ".join(["%.7f" % v for v in [x, sin(3*pi*x), sin(4*pi*x)]]) + "\n")
-
 with Plot("plot") as p:
+    p.title = r"Plotting data from files"
+
     p.x.min = 0
     p.x.max = 20.3
     p.x.tick = 2
@@ -21,8 +13,6 @@ with Plot("plot") as p:
     p.y.tick = 0.2
     p.y.tick_format = lambda y: "%.1f" % y
     p.y.label = r"$\displaystyle\frac{\Vert\phi_1\Vert_2}{\Vert\phi_0\Vert_2}$"
-
-    p.title = r"Plotting data from files"
 
     p.line_style(1, "ultra thick")
     p.line_style(2, "ultra thick")
