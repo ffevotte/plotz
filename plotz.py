@@ -26,7 +26,6 @@ import shutil
 import subprocess
 import math
 import re
-import threading
 
 class TmpDir(object):
     """Temporary directory
@@ -447,7 +446,7 @@ class Plot:
         with TmpDir() as tmp:
             with open(os.path.join(tmp, "standalone.tex"), "w") as f:
                 f.write("%\n".join([
-                    r"\nonstopmode",
+                    r"\errorstopmode",
                     r"\documentclass{standalone}",
                     r"\usepackage{plotz}",
                     r"\begin{document}",
@@ -462,29 +461,19 @@ class Plot:
                              os.path.join(tmp, "plotz.tex"),
                              self._output+".tex"])
 
-            pdflatex = subprocess.Popen(["stdbuf", "-o0", "pdflatex", "-file-line-error", "standalone.tex"],
-                                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            pdflatex = subprocess.Popen(["pdflatex", "-file-line-error", "standalone.tex"],
+                                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE,
                                         cwd=tmp)
-
-            def kill_pdflatex():
-                print "Killing pdflatex after 5 seconds"
-                pdflatex.kill()
-            timeout = threading.Timer(5, kill_pdflatex)
-            timeout.start()
+            pdflatex.stdin.close()
 
             context = 0
-            error = re.compile("^.+:\d+: ")
-            for line in iter(pdflatex.stdout.readline, b''):
-                timeout.cancel()
-                timeout = threading.Timer(5, kill_pdflatex)
-                timeout.start()
+            error = re.compile(r"^.+:\d+: ")
+            for line in pdflatex.stdout:
                 if error.match(line):
                     context = max(context, 3)
                 if context > 0:
                     print line,
                     context -= 1
-
-            timeout.cancel()
 
             if os.path.exists(os.path.join(tmp, "standalone.pdf")):
                 subprocess.call(["cp",
@@ -510,7 +499,7 @@ def columns(i, j):
     return fun
 
 
-def DataFile(filename, sep=re.compile("\s+"), comment="#"):
+def DataFile(filename, sep=re.compile(r"\s+"), comment="#"):
     with open(filename, "r") as f:
         for line in f:
             if line.startswith(comment):
@@ -531,7 +520,6 @@ def DataFile(filename, sep=re.compile("\s+"), comment="#"):
 
 
 def test1():
-    import math
     import numpy
 
     N = 100
