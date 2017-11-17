@@ -373,11 +373,9 @@ class Plot:
         first = True
         for row in data:
             x = row[col[0]]
-            if not isinstance(x, float):
-                continue
-
             y = row[col[1]]
-            if not isinstance(y, float):
+            if not (isinstance(x, float) and isinstance(y, float)):
+                first = True
                 continue
 
             try:
