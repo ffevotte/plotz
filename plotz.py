@@ -159,7 +159,7 @@ y in the orthogonal direction."""
     def _tick_format(self, x):
         """Default implementation for the ticks format.
 Pretty print regular values and use 10^x in the case of logarithmic scale."""
-        if self.scale == "log":
+        if self.scale == math.log10:
             label = "$10^{%d}$" % x
         else:
             label = ppfloat(x)
@@ -185,6 +185,7 @@ Pretty print regular values and use 10^x in the case of logarithmic scale."""
                 x *= 10
                 factor *= 10
             x = round(x)/factor
+            self.min = min(self.min, x)
 
             while x <= self.max:
                 self.ticks.append(x)
