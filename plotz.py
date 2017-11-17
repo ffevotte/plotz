@@ -372,7 +372,13 @@ class Plot:
         first = True
         for row in data:
             x = row[col[0]]
+            if not isinstance(x, float):
+                continue
+
             y = row[col[1]]
+            if not isinstance(y, float):
+                continue
+
             try:
                 if first:
                     coord("  ", x, y)
@@ -514,7 +520,7 @@ def DataFile(filename, sep=re.compile(r"\s+"), comment="#"):
                 try:
                     fields[i] = float(fields[i])
                 except ValueError:
-                    fields[i] = float("nan")
+                    pass
 
             yield fields
 
