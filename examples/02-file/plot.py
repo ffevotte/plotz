@@ -10,14 +10,13 @@ with Plot("plot") as p:
     p.x.label = r"$\omega$"
 
     p.y.min = 0
+    p.y.max = 1
     p.y.tick = 0.2
     p.y.tick_format = lambda y: "%.1f" % y
     p.y.label = r"$\displaystyle\frac{\Vert\phi_1\Vert_2}{\Vert\phi_0\Vert_2}$"
 
-    p.line_style(1, "ultra thick")
-    p.line_style(2, "ultra thick")
-    for line in range(3,8):
-        p.line_style(line, "thick")
+    for i in range(2):
+        p.style.thickness[i] = "ultra thick"
 
     #line1
     p.plot(DataFile("mydata.dat"),
@@ -33,5 +32,3 @@ with Plot("plot") as p:
     p.plot(DataFile("mydata.csv", sep=";", comment="#"), col=(0,3),
            title=r"PDSA(6)")
     #line3
-
-    p.legend("north east")

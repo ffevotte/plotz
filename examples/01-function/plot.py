@@ -18,7 +18,7 @@ with Plot("plot") as p:
     #line2
 
     #line3
-    p.plot(Function(lambda x: sin(3*x), range=p.x),
+    p.plot(Function(lambda x: sin(3*x)),
            title=r"$\sin(3\,x)$")
     #line3
 

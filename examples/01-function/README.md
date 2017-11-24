@@ -8,7 +8,7 @@ This example demonstrates how to plot the data computed by python functions.
 
 The basic way to plot functions is to use the `Function` data generator.
 You give it a function, and optionally a number of samples (defaulting to 100)
-and a range (defaulting to [0, 1]).
+and a range (see below).
 
 <!---plotz include("plot.py", "#line1") -->
 ```python
@@ -30,12 +30,12 @@ short definitions:
 
 ## Getting the range automatically
 
-If you want the range to be inherited from previously plotted data, you can pass
-the plot axis instead of a manually defined range:
+If you want the range to be inherited from previously plotted data, you can just
+omit the `range` argument:
 
 <!---plotz include("plot.py", "#line3") -->
 ```python
-    p.plot(Function(lambda x: sin(3*x), range=p.x),
+    p.plot(Function(lambda x: sin(3*x)),
            title=r"$\sin(3\,x)$")
 ```
 <!---plotz end-->

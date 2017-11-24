@@ -19,6 +19,8 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>.
 # The GNU General Public License is contained in the file COPYING.
 
+"""PlotZ"""
+
 import sys
 import tempfile
 import os
@@ -26,19 +28,58 @@ import shutil
 import subprocess
 import math
 import re
+import plotz.utils
 
-def ppfloat(x, fmt="%f"):
-    """Return a pretty string representing the given float.
-ALl useless trailing zeros are removed."""
-    res = fmt % x
-    if res.find(".") >= 0:
-        while res.endswith("0"):
-            res = res[0:len(res)-1]
-        if res.endswith("."):
-            res = res[0:len(res)-1]
-    return res
+class Function(object):
+    def __init__(self, fun, samples=100, range=None):
+        self._fun = fun
+        self._samples = samples
+        self.range = range
+
+        self._x0 = None
+        self._x1 = None
+        self._dx = None
+        self._i = None
+
+    def __iter__(self):
+        self._x0 = self.range[0]
+        self._x1 = self.range[1]
+        self._dx = float(self._x1-self._x0)/(self._samples-1)
+        self._i = 0
+        return self
+
+    def __next__(self):
+        return self.next()
+
+    def next(self):
+        if self._i == self._samples:
+            raise StopIteration()
+
+        x = self._x0 + self._i*self._dx
+        self._i += 1
+        return (x, self._fun(x))
+
+def DataFile(filename, sep=re.compile(r"\s+"), comment="#"):
+    with open(filename, "r") as f:
+        for line in f:
+            if line.startswith(comment):
+                continue
+
+            try:
+                fields = line.split(sep)
+            except TypeError:
+                fields = sep.split(line)
+
+            for i in xrange(len(fields)):
+                try:
+                    fields[i] = float(fields[i])
+                except ValueError:
+                    pass
+
+            yield fields
 
 class Axis(object):
+    """Axis"""
     def __init__(self, orientation):
         # Internal members
         self._orientation = orientation
@@ -57,7 +98,9 @@ class Axis(object):
 
         self.min = float("inf")
         self.max = float("-inf")
+        self.pos = None
 
+        self.tick = None
         self.ticks = None
         self.tick_format = self._tick_format
 
@@ -75,7 +118,7 @@ class Axis(object):
 
     @staticmethod
     def _linear(x):
-        return x
+        return 1.0*x
 
     def _tick_format(self, x):
         """Default implementation for the ticks format.
@@ -83,13 +126,49 @@ Pretty print regular values and use 10^x in the case of logarithmic scale."""
         if self.scale == math.log10:
             label = "$10^{%d}$" % x
         else:
-            label = ppfloat(x)
+            label = plotz.utils.ppfloat(x)
         return label
+
+    def _update(self):
+        if self.tick is None:
+            delta = (self.max-self.min)
+            factor = 1
+            while delta < 10:
+                delta *= 10
+                factor *= 10
+            self.tick = round(delta/5.) / factor
+            self.min = math.floor(self.min*factor) / factor
+            self.max = math.ceil(self.max*factor) / factor
+
+        if self.ticks is None:
+            self.ticks = []
+
+            x = self.min
+            factor = 1
+            while x != round(x) and abs(x) < 0.9:
+                x *= 10
+                factor *= 10
+            x = round(x)/factor
+            self.min = min(self.min, x)
+
+            while x <= self.max:
+                self.ticks.append(x)
+                x += self.tick
+
+        def normalize_tick(tick):
+            try:
+                (x, label) = tick
+            except:
+                x = tick
+                label = self.tick_format(x)
+            return (x, label)
+        self.ticks = [normalize_tick(t) for t in self.ticks]
+
 
 class Style:
     def __init__(self):
         self.color = []
-        self.thickness = ["thick"] * 8
+        self.thickness = ["very thick"] * 8
         self.pattern = ["solid"] * 8
         self.marker = [
             r"$+$",
@@ -132,19 +211,50 @@ class Line:
         self.title = None
         self.line = None
         self.color = None
-        self.markers = None
+        self.marker = None
         self.pattern = None
         self.thickness = None
+
+        self.points = [[]]
+
+    color = iter(xrange(100))
+    marker = iter(xrange(100))
+    pattern = iter(xrange(100))
+    thickness = iter(xrange(100))
 
 class Legend:
     def __init__(self):
         self.show = True
         self.position = "north east"
-        self.anchor = "north east"
+        self.anchor = None
+
+    def _update(self):
+        if self.anchor is None:
+            if isinstance(self.position, str):
+                self.anchor = self.position
+            else:
+                self.anchor = "center"
+
+    def __call__(self, position, anchor=None):
+        self.position = position
+        self.anchor = anchor
+
+        if anchor is None:
+            if isinstance(position, str):
+                self.anchor = position
+            else:
+                self.anchor = "center"
+
 
 class Plot:
-    def __init__(self):
+    """Plot"""
+    def __init__(self, output):
+        self.output = output
+        """Basename of the output figure"""
+
         self.x = Axis(1)
+        """x :py:class:`Axis`"""
+
         self.y = Axis(2)
         self.title = None
         self.size_x = 266.66
@@ -155,7 +265,8 @@ class Plot:
         self.legend = Legend()
 
 
-    def plot(self, data, col=(0,1), title=None, line=True, markers=False):
+    def plot(self, data, col=(0,1), title=None, line=True, markers=False,
+             color=None, pattern=None, thickness=None):
         self.x._setup = False
         self.y._setup = False
 
@@ -165,9 +276,29 @@ class Plot:
         l = Line()
         l.title = title
         l.line = line
-        l.markers = markers
 
-        l.points = [[]]
+        if markers is True:
+            l.marker = Line.marker.next()
+        elif not isinstance(markers, bool):
+            l.marker = markers
+
+        if color is None:
+            l.color = Line.color.next()
+        else:
+            l.color = color
+
+        if line:
+            if pattern is None:
+                l.pattern = Line.pattern.next()
+            else:
+                l.pattern = pattern
+
+            if thickness is None:
+                l.thickness = Line.thickness.next()
+            else:
+                l.thickness = thickness
+
+
         for row in data:
             x = row[col[0]]
             y = row[col[1]]
@@ -196,98 +327,37 @@ class Plot:
         if exc_type is not None:
             return
 
-class Function(object):
-    def __init__(self, fun, samples=100, range=None):
-        self._fun = fun
-        self._samples = samples
-        self.range = range
+        self.legend._update()
+        self.x._update()
+        self.y._update()
 
-    def __iter__(self):
-        self._x0 = self.range[0]
-        self._x1 = self.range[1]
-        self._dx = float(self._x1-self._x0)/(self._samples-1)
-        self._i = 0
-        return self
+        if self.x.pos is None:
+            self.x.pos = self.y.min
 
-    def __next__(self):
-        return self.next()
+        if self.y.pos is None:
+            self.y.pos = self.x.min
 
-    def next(self):
-        if self._i == self._samples:
-            raise StopIteration()
-
-        x = self._x0 + self._i*self._dx
-        self._i += 1
-        return (x, self._fun(x))
-
-def columns(i, j):
-    def fun(fields):
-        return (fields[i], fields[j])
-    return fun
-
-
-def DataFile(filename, sep=re.compile(r"\s+"), comment="#"):
-    with open(filename, "r") as f:
-        for line in f:
-            if line.startswith(comment):
-                continue
-
-            try:
-                fields = line.split(sep)
-            except TypeError:
-                fields = sep.split(line)
-
-            for i in xrange(len(fields)):
-                try:
-                    fields[i] = float(fields[i])
-                except ValueError:
-                    pass
-
-            yield fields
-
-
-def test1():
-    import numpy
-
-    N = 100
-    data = numpy.zeros((N, 3))
-    for i in xrange(N):
-        x = (i+0.5)*1/float(N)
-        data[i, :] = [x, math.sin(math.pi*x), math.sin(math.pi*x*2)]
-
-    with Plot("test") as plot:
-        plot.x.label = "$x$"
-        plot.y.label = "$y$"
-        plot.y.label_rotate = True
-
-        plot.plot(Function(lambda x: math.sin(0.5*math.pi*x), samples=50, range=(0, 1)),
-                  line=False, markers=True,
-                  title=r"function $\sin(\frac{\pi x}{2})$")
-
-        plot.tikz(r"""
-           \draw[->](0.56,0)
-             node[anchor=south west, fill=white]{\texttt{tikz} annotations on the figure}
-             -- ++(-1em,-1em);""")
-
-        plot.legend("south west")
+        plotz.utils.TikzGenerator(self).run()
 
 if __name__ == "__main__":
-    #test1()
-    p = Plot()
-    p.x.min = 0
-    p.x.max = math.pi
+    def test():
+        with Plot("test") as p:
+            p.title = "PlotZ figure"
 
-    l = p.plot(Function(lambda x: math.sin(0.5*math.pi*x), samples=10),
-               line=False, markers=True,
-               title=r"function $\sin(\frac{\pi x}{2})$")
+            p.x.label = "$x$"
+            p.x.min = 0
+            p.x.max = math.pi
 
-    p.x.scale = math.log10
+            p.y.label = "$y$"
 
-    import pprint
-    p.x = p.x.__dict__
-    p.y = p.y.__dict__
-    p.style = p.style.__dict__
-    p.legend = p.legend.__dict__
-    for i in xrange(len(p.lines)):
-        p.lines[i] = p.lines[i].__dict__
-    pprint.pprint(p.__dict__)
+            l = p.plot(Function(lambda x: math.sin(0.5*math.pi*x), samples=100),
+                       line=False, markers=True,
+                       title=r"function $\sin(\frac{\pi x}{2})$")
+
+            p.plot(Function(lambda x: math.sin(math.pi*x), samples=100),
+                   title=r"$\sin(\pi x)$")
+
+            p.legend("east", "west")
+
+
+    test()
