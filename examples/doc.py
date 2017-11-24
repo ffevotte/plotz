@@ -100,6 +100,10 @@ for entry in sorted(os.listdir(".")):
                 print "  - compiling LaTeX document"
                 subprocess.call(["latexmk", "-pdf", "document.tex"])
 
+            if os.path.exists("presentation.tex"):
+                print "  - compiling LaTeX presentation"
+                subprocess.call(["latexmk", "-pdf", "presentation.tex"])
+
             for filename in os.listdir("."):
                 if filename.endswith(".pdf"):
                     print "  - converting %s to svg" % filename

@@ -5,7 +5,6 @@ with Plot("plot") as p:
     p.title = r"My first \texttt{PlotZ} plot"
     p.x.label = "$x$"
     p.y.label = "$y$"
-    p.y.label_rotate = True
 
     p.plot(Function(sin, samples=50, range=(0, pi)),
            title=r"$\sin(x)$")

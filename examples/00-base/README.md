@@ -15,7 +15,6 @@ with Plot("plot") as p:
     p.title = r"My first \texttt{PlotZ} plot"
     p.x.label = "$x$"
     p.y.label = "$y$"
-    p.y.label_rotate = True
 
     p.plot(Function(sin, samples=50, range=(0, pi)),
            title=r"$\sin(x)$")
@@ -60,3 +59,9 @@ scales are adjusted.
 <!---plotz end -->
 
 <img src="document.svg?raw=true&sanitize=true"/>
+
+
+If you include the same figure in a beamer presentation, it will nicely adapt to
+its new environment: notice how the font changed, and remains readable:
+
+<img src="presentation.svg?raw=true&sanitize=true"/>

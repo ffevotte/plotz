@@ -3,3 +3,12 @@ document.fdb_latexmk
 document.fls
 document.log
 document.synctex.gz
+presentation.aux
+presentation.fdb_latexmk
+presentation.fls
+presentation.log
+presentation.synctex.gz
+presentation.nav
+presentation.out
+presentation.snm
+presentation.tocg
