@@ -19,19 +19,33 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>.
 # The GNU General Public License is contained in the file COPYING.
 
-"""PlotZ"""
+"""This is the python API to PlotZ.
+
+PlotZ is a system to produce TikZ-based plots destined to be seamlessly included
+in a LaTeX document.
+"""
+#pylint: disable=invalid-name
 
 import sys
-import tempfile
-import os
-import shutil
-import subprocess
 import math
 import re
 import plotz.utils
 
+__all__ = ["Plot", "Axis", "Legend", "Style", "Line", "Function", "DataFile"]
+
 class Function(object):
+    """Data generator for python functions
+
+    Args:
+      fun (function): python function
+      samples (int):  number of sampled points
+      range (tuple):  range of the data
+    """
+    #pylint: disable=too-few-public-methods
+
     def __init__(self, fun, samples=100, range=None):
+        #pylint: disable=redefined-builtin
+
         self._fun = fun
         self._samples = samples
         self.range = range
@@ -52,6 +66,8 @@ class Function(object):
         return self.next()
 
     def next(self):
+        #pylint: disable=missing-docstring
+
         if self._i == self._samples:
             raise StopIteration()
 
@@ -60,6 +76,13 @@ class Function(object):
         return (x, self._fun(x))
 
 def DataFile(filename, sep=re.compile(r"\s+"), comment="#"):
+    """ Data generator for an ASCII datafile
+
+    Args:
+      filename (str):  path to the data file
+      sep (str or re): delimiter for columns
+      comment (str):   string indicating the beginning of a comment line
+    """
     with open(filename, "r") as f:
         for line in f:
             if line.startswith(comment):
@@ -79,33 +102,72 @@ def DataFile(filename, sep=re.compile(r"\s+"), comment="#"):
             yield fields
 
 class Axis(object):
-    """Axis"""
+    """Plot axis
+
+    This object stores everything related to plot axes: range, position,
+    position of ticks...
+    """
+    #pylint: disable=too-many-instance-attributes
+
     def __init__(self, orientation):
         # Internal members
         self._orientation = orientation
         self._setup = True
+        self._scale = Axis.linear
 
-        # Special members
-        self._scale = Axis._linear
-
-        # Public
+        #: Axis label
         self.label = None
+
+        #: True if the label should be rotated
         self.label_rotate = False
-        if orientation == 1:
-            self.label_shift = 2
-        else:
+
+        #: Space between the axis and the label
+        self.label_shift = 2
+        if orientation == 2:
             self.label_shift = 3
 
-        self.min = float("inf")
+        #: Maximum axis value
+        #:
+        #: This value is computed automatically when plotting data, but can be
+        #: changed manually if necessary.
         self.max = float("-inf")
+        #: Minimum axis value. (see :py:attr:`max` for details)
+        self.min = float("inf")
+
+        #: Position of the axis with respect to the other axis.
+        #:
+        #: By default, the position will be set to the minimum value of the
+        #: other axis. In other words, by default, the *x* and *y* axes are
+        #: respectively drawn on the bottom and left part of the plotting area.
         self.pos = None
 
-        self.tick = None
+        #: List of axis ticks, in one of three forms
+        #:
+        #: 1. *dx*
+        #: 2. [*x1*, *x2*, *x3*, ...]
+        #: 3. [(*x1*, *label1*), (*x2*, *label2*), ...]
+        #:
+        #: Detailed explanation:
+        #:
+        #: 1. Tick positions range from :py:attr:`min` to :py:attr:`max` by
+        #:    increments of *dx*. Tick labels are computed by :py:attr:`tick_format`.
+        #:
+        #: 2. Ticks are placed at positions *x1*, *x2*, *x3*... Labels are
+        #:    computed by :py:attr:`tick_format`.
+        #:
+        #: 3. Ticks are placed at positions *x1*, *x2*, *x3*... Labels are
+        #:    defined by *label1*, *label2*, *label3*...
         self.ticks = None
+
+        #: Function called to format tick labels.
+        #:
+        #: The default behaviour is to label tick as :math:`10^x` in
+        #: logarithmic scale, and to pretty-print values in linear scale.
         self.tick_format = self._tick_format
 
     @property
     def scale(self):
+        "Axis scale: :py:class:`linear` or :py:class:`logarithmic`"
         return self._scale
 
     @scale.setter
@@ -117,8 +179,14 @@ class Axis(object):
         self._scale = fun
 
     @staticmethod
-    def _linear(x):
+    def linear(x):
+        "Linear scale"
         return 1.0*x
+
+    @staticmethod
+    def logarithmic(x):
+        "Logarithmic scale"
+        return math.log10(x)
 
     def _tick_format(self, x):
         """Default implementation for the ticks format.
@@ -130,19 +198,17 @@ Pretty print regular values and use 10^x in the case of logarithmic scale."""
         return label
 
     def _update(self):
-        if self.tick is None:
+        if self.ticks is None:
             delta = (self.max-self.min)
             factor = 1
             while delta < 10:
                 delta *= 10
                 factor *= 10
-            self.tick = round(delta/5.) / factor
+            self.ticks = round(delta/5.) / factor
             self.min = math.floor(self.min*factor) / factor
             self.max = math.ceil(self.max*factor) / factor
 
-        if self.ticks is None:
-            self.ticks = []
-
+        if isinstance(self.ticks, float):
             x = self.min
             factor = 1
             while x != round(x) and abs(x) < 0.9:
@@ -151,25 +217,45 @@ Pretty print regular values and use 10^x in the case of logarithmic scale."""
             x = round(x)/factor
             self.min = min(self.min, x)
 
+            ticks = []
             while x <= self.max:
-                self.ticks.append(x)
-                x += self.tick
+                ticks.append(x)
+                x += self.ticks
 
-        def normalize_tick(tick):
+            self.ticks = ticks
+
+        def _normalize_tick(tick):
             try:
                 (x, label) = tick
-            except:
+            except TypeError:
                 x = tick
                 label = self.tick_format(x)
             return (x, label)
-        self.ticks = [normalize_tick(t) for t in self.ticks]
+        self.ticks = [_normalize_tick(t) for t in self.ticks]
 
 
-class Style:
+class Style(object):
+    """This object is responsible for storing all settings related to the styling
+    of the plot: colors, line patterns, markers..."""
+    #pylint: disable=too-few-public-methods
+
     def __init__(self):
+        #: List of colors used in the plot. This might be more easily set using
+        #: :py:func:`colormap`
         self.color = []
+        self.colormap()
+
+        #: List of TikZ line thicknesses used in the plot
+        #:
+        #: By default, all lines are *very thick*.
         self.thickness = ["very thick"] * 8
+
+        #: List of dash/dot patterns used in the plot.
+        #:
+        #: By default, all lines are solid.
         self.pattern = ["solid"] * 8
+
+        #: List of markers used in the plot.
         self.marker = [
             r"$+$",
             r"$\circ$",
@@ -181,10 +267,23 @@ class Style:
             r"$\blacktriangle$",
         ]
 
-        self.colormap()
-
     def colormap(self, name=None):
-        """Setup a colormap"""
+        """ Setup a colormap.
+
+        Predefined colormaps come from colorbrewer2.org:
+
+        *default*
+          8-color map with qualitatively varying colors (qualitative, set1)
+
+        *dark*
+          8-color map with qualitatively varying colors in darker tones (qualitative, dark2)
+
+        *paired*
+          8-color map with paired colors (qualitative, paired)
+
+        *spectralN* (for N=4..8)
+          N-color map with diverging colors (diverging, spectral)
+        """
 
         # Default colormap
         c = ["377EB8", "E41A1C", "4DAF4A", "984EA3", "FF7F00", "A65628", "F781BF", "FFFF33"]
@@ -206,26 +305,65 @@ class Style:
 
         self.color = c
 
-class Line:
+class Line(object):
+    """ A line in the plot.
+
+    Plotted lines are created by :py:meth:`Plot.plot`, but they can be altered
+    afterwards.
+    """
+    #pylint: disable=too-few-public-methods
+
     def __init__(self):
+        #: Title of the line.
+        #:
+        #: If set, this is what goes in the plot legend.
         self.title = None
+
+        #: True if the line should be drawn.
         self.line = None
+
+        #: Index of the line color in the :py:attr:`Style.color` list.
         self.color = None
+
+        #: Index of the point markers in the :py:attr:`Style.marker` list.
         self.marker = None
+
+        #: Index of the line dash/dot pattern in the :py:attr:`Style.pattern`
+        #: list.
         self.pattern = None
+
+        #: Index of the line thickness in the :py:attr:`Style.thickness` list.
         self.thickness = None
 
         self.points = [[]]
 
-    color = iter(xrange(100))
-    marker = iter(xrange(100))
-    pattern = iter(xrange(100))
-    thickness = iter(xrange(100))
+    _color = iter(xrange(100))
+    _marker = iter(xrange(100))
+    _pattern = iter(xrange(100))
+    _thickness = iter(xrange(100))
 
-class Legend:
+class Legend(object):
+    """ Plot legend """
+    #pylint: disable=too-few-public-methods
+
     def __init__(self):
+        #: True if the legend should be drawn on the plot
         self.show = True
+
+        #: Position of the legend in the plot.
+        #:
+        #: If this is a string (such as "north east"), it is taken to be a
+        #: TikZ anchor in the plotting area.
+        #:
+        #: Otherwise, :py:attr:`position` should be a tuple of coordinates.
         self.position = "north east"
+
+        #: Anchor relatively to which the legend is positioned.
+
+        #: This defines which part of the legend is positioned where defined by
+        #: :py:attr:`position`. This should be a string denoting a TikZ anchor
+        #: (such as "north east", meaning that the top left corner of the legend
+        #: is to be positioned where defined by :py:attr:`position`).
         self.anchor = None
 
     def _update(self):
@@ -246,27 +384,88 @@ class Legend:
                 self.anchor = "center"
 
 
-class Plot:
-    """Plot"""
+class Plot(object):
+    """ Master object to create a PlotZ figure.
+
+    This object is supposed to be used in a ``with`` statement::
+
+        with Plot("myname") as p:
+            p.plot(...)
+
+            # the plot is actually generated at the end of the block
+    """
+    #pylint: disable=too-many-instance-attributes,too-few-public-methods
+
     def __init__(self, output):
+        #: Basename of the output figure
+        #:
+        #: Plotz will generate two files
+        #:   - ``<output>.tex``: the actual PlotZ figure, which you can include in
+        #:     any LaTeX document using the ``plotz`` command.
+        #:   - ``<output>.pdf``: a rendered pdf version of the figure.
         self.output = output
-        """Basename of the output figure"""
 
+        #: x :py:class:`Axis`
         self.x = Axis(1)
-        """x :py:class:`Axis`"""
 
+        #: y :py:class:`Axis`
         self.y = Axis(2)
+
+        #: Plot title
         self.title = None
+
+        #: Plot width
+        #:
+        #: This defines the default width of the plotting area (*i.e* excluding
+        #: axis labels, title, legend...) It is used when producing the pdf
+        #: output, and as a default size when including the plot in a LaTeX
+        #: document. This size can be changed in LaTeX using
+        #: ``\plotz[width=...]{}``
+        #:
+        #: The default aspect ratio of the plotting area is 4:3
         self.size_x = 266.66
+
+        #: Plot height (see :py:attr:`size_x` for more details)
         self.size_y = 200.00
+
+        #: Plot scale.
+        #:
+        #: This is a convenient way to adjust the default size of the plot
+        #: without affecting its aspect ratio. Both :py:attr:`size_x` and
+        #: :py:attr:`size_y` are multiplied by :py:attr:`scale` to determine the
+        #: default plot size.
         self.scale = 1.0
+
+        #: Plot :py:class:`Style`
         self.style = Style()
-        self.lines = []
+
+        #: Plot :py:class:`Legend`
         self.legend = Legend()
 
+        self.lines = []
 
-    def plot(self, data, col=(0,1), title=None, line=True, markers=False,
+
+    def plot(self, data, col=(0, 1), title=None, line=True, markers=False,
              color=None, pattern=None, thickness=None):
+        """ Plot a curve
+
+        Args:
+          data: data generator (see :py:class:`Function` and :py:class:`DataFile`)
+          tuple col:  tuple of column indices to plot
+          str title: line title
+          bool line: ``True`` if the line should be drawn
+          markers: - ``False``: avoid drawing point markers
+                   - ``True``: use the next available marker
+                   - *int*: index of the marker to use
+          int color, pattern, thickness: see the relevant :py:class:`Line`
+             attributes. If these are not specified, line attributes indices advance
+             by one for each plotted line.
+
+        Returns:
+          the drawn :py:class:`Line`, which can be modifed afterwards as needed.
+        """
+        #pylint: disable=too-many-arguments, protected-access
+
         self.x._setup = False
         self.y._setup = False
 
@@ -278,23 +477,23 @@ class Plot:
         l.line = line
 
         if markers is True:
-            l.marker = Line.marker.next()
+            l.marker = Line._marker.next()
         elif not isinstance(markers, bool):
             l.marker = markers
 
         if color is None:
-            l.color = Line.color.next()
+            l.color = Line._color.next()
         else:
             l.color = color
 
         if line:
             if pattern is None:
-                l.pattern = Line.pattern.next()
+                l.pattern = Line._pattern.next()
             else:
                 l.pattern = pattern
 
             if thickness is None:
-                l.thickness = Line.thickness.next()
+                l.thickness = Line._thickness.next()
             else:
                 l.thickness = thickness
 
@@ -307,15 +506,16 @@ class Plot:
                 x = self.x.scale(x)
                 y = self.y.scale(y)
 
-                l.points[-1].append((x,y))
+                l.points[-1].append((x, y))
 
                 self.x.min = min(x, self.x.min)
                 self.x.max = max(x, self.x.max)
 
                 self.y.min = min(y, self.y.min)
                 self.y.max = max(y, self.y.max)
-            except:
+            except TypeError:
                 l.points.append([])
+
 
         self.lines.append(l)
         return l
@@ -324,6 +524,8 @@ class Plot:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        #pylint: disable=protected-access
+
         if exc_type is not None:
             return
 
@@ -341,6 +543,8 @@ class Plot:
 
 if __name__ == "__main__":
     def test():
+        "Test function for basic PlotZ usage"
+
         with Plot("test") as p:
             p.title = "PlotZ figure"
 
@@ -350,9 +554,9 @@ if __name__ == "__main__":
 
             p.y.label = "$y$"
 
-            l = p.plot(Function(lambda x: math.sin(0.5*math.pi*x), samples=100),
-                       line=False, markers=True,
-                       title=r"function $\sin(\frac{\pi x}{2})$")
+            p.plot(Function(lambda x: math.sin(0.5*math.pi*x), samples=100),
+                   line=False, markers=True,
+                   title=r"function $\sin(\frac{\pi x}{2})$")
 
             p.plot(Function(lambda x: math.sin(math.pi*x), samples=100),
                    title=r"$\sin(\pi x)$")
