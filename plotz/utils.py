@@ -141,12 +141,7 @@ class TikzGenerator(object):
         self._pattern = None
         self._thickness = None
 
-        def legend_shift():
-            shift = 0
-            while True:
-                yield shift
-                shift += 1
-        self._legend_shift = legend_shift()
+        self._legend_shift = iter(range(100))
 
 
     def run(self):
@@ -221,7 +216,7 @@ class TikzGenerator(object):
 
     def _line_legend(self, line, options):
         if line.title:
-            shift = -1.5*self._legend_shift.next()
+            shift = -1.5 * next(self._legend_shift)
             self._latex.append("/legend","".join([
                 r"\draw[%s](0,%fem)%s++(2em,0)"
                 % (options["style"], shift, options["draw"]),
@@ -240,7 +235,7 @@ class TikzGenerator(object):
         for subline in line.points:
 
             points = iter(subline)
-            (x,y) = points.next()
+            (x,y) = next(points)
             self._latex.append("/lines",
                                "  (%.15f,%.15f)%s" % (x, y, options["marker"]))
 
@@ -362,10 +357,11 @@ class TikzGenerator(object):
             context = 0
             error = re.compile(r"^.+:\d+: ")
             for line in pdflatex.stdout:
+                line = line.decode()
                 if error.match(line):
                     context = max(context, 3)
                 if context > 0:
-                    print line,
+                    sys.stderr.write(line)
                     context -= 1
 
             if os.path.exists(os.path.join(tmp, "standalone.pdf")):

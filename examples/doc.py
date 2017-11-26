@@ -85,24 +85,30 @@ def process_README(dirname):
     return (dirname, title, image)
 
 
+def pdflatex(filename):
+    p = subprocess.Popen(["latexmk", "-pdf", "-interaction=errorstopmode", filename], stdin=subprocess.PIPE)
+    p.stdin.close()
+    p.wait()
+
 toc = []
 for entry in sorted(os.listdir(".")):
     if os.path.isdir(entry):
         print "\nentering %s" % entry
         with WorkingDirectory(entry):
             print "  - generating plot"
-            subprocess.call(["python", "plot.py"])
+            subprocess.call(["python-coverage", "run", "plot.py"])
+            subprocess.call(["python3", "plot.py"])
 
             print "  - processing README.md"
             toc.append(process_README(entry))
 
             if os.path.exists("document.tex"):
                 print "  - compiling LaTeX document"
-                subprocess.call(["latexmk", "-pdf", "document.tex"])
+                pdflatex("document.tex")
 
             if os.path.exists("presentation.tex"):
                 print "  - compiling LaTeX presentation"
-                subprocess.call(["latexmk", "-pdf", "presentation.tex"])
+                pdflatex("presentation.tex")
 
             for filename in os.listdir("."):
                 if filename.endswith(".pdf"):

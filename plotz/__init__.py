@@ -93,9 +93,9 @@ def DataFile(filename, sep=re.compile(r"\s+"), comment="#"):
             except TypeError:
                 fields = sep.split(line)
 
-            for i in xrange(len(fields)):
+            for i, f in enumerate(fields):
                 try:
-                    fields[i] = float(fields[i])
+                    fields[i] = float(f)
                 except ValueError:
                     pass
 
@@ -337,10 +337,10 @@ class Line(object):
 
         self.points = [[]]
 
-    _color = iter(xrange(100))
-    _marker = iter(xrange(100))
-    _pattern = iter(xrange(100))
-    _thickness = iter(xrange(100))
+    _color = iter(range(100))
+    _marker = iter(range(100))
+    _pattern = iter(range(100))
+    _thickness = iter(range(100))
 
 class Legend(object):
     """ Plot legend """
@@ -477,23 +477,23 @@ class Plot(object):
         l.line = line
 
         if markers is True:
-            l.marker = Line._marker.next()
+            l.marker = next(Line._marker)
         elif not isinstance(markers, bool):
             l.marker = markers
 
         if color is None:
-            l.color = Line._color.next()
+            l.color = next(Line._color)
         else:
             l.color = color
 
         if line:
             if pattern is None:
-                l.pattern = Line._pattern.next()
+                l.pattern = next(Line._pattern)
             else:
                 l.pattern = pattern
 
             if thickness is None:
-                l.thickness = Line._thickness.next()
+                l.thickness = next(Line._thickness)
             else:
                 l.thickness = thickness
 
