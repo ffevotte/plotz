@@ -249,12 +249,14 @@ class TikzGenerator(object):
     def _axis(self, axis):
 
         # Options
+        tick_options = "rotate=%f,anchor=%s" % (axis.tick_rotate, axis.tick_anchor)
+
         if axis._orientation == 1:
-            tick_options = "below"
-            label_options = tick_options
+            label_options = "anchor=north"
+            if axis.label_rotate:
+                label_options += ",rotate=90,anchor=east,inner sep=1em"
         else:
-            tick_options = "left"
-            label_options = tick_options
+            label_options = "anchor=east"
             if axis.label_rotate:
                 label_options += ",rotate=90,anchor=south,inner sep=1em"
 

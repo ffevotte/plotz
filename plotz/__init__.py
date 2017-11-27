@@ -165,6 +165,12 @@ class Axis(object):
         #: logarithmic scale, and to pretty-print values in linear scale.
         self.tick_format = self._tick_format
 
+        #: Rotate tick labels by this amount (in degrees)
+        self.tick_rotate = 0
+
+        #: Anchor of tick labels
+        self.tick_anchor = None
+
     @property
     def scale(self):
         "Axis scale: :py:class:`linear` or :py:class:`logarithmic`"
@@ -198,6 +204,10 @@ Pretty print regular values and use 10^x in the case of logarithmic scale."""
         return label
 
     def _update(self):
+        self._update_ticks()
+        self._update_tick_rotation()
+
+    def _update_ticks(self):
         if self.ticks is None:
             delta = (self.max-self.min)
             factor = 1
@@ -232,6 +242,27 @@ Pretty print regular values and use 10^x in the case of logarithmic scale."""
                 label = self.tick_format(x)
             return (x, label)
         self.ticks = [_normalize_tick(t) for t in self.ticks]
+
+    def _update_tick_rotation(self):
+        anchor = ["north", "north east",
+                  "east", "south east",
+                  "south", "south west",
+                  "west", "north west"]
+
+        if self.tick_anchor is None:
+            rot = (self.tick_rotate + (self._orientation - 1) * 90.) / 45.
+            self.tick_anchor = anchor[int(round(rot) % 8)]
+
+        for i, a in enumerate(anchor):
+            if self.tick_anchor == a:
+                rot = i
+                break
+
+        if 90 < self.tick_rotate % 360 < 270:
+            self.tick_rotate += 180
+            rot += 4
+
+        self.tick_anchor = anchor[int(round(rot) % 8)]
 
 
 class Style(object):
@@ -549,10 +580,12 @@ if __name__ == "__main__":
             p.title = "PlotZ figure"
 
             p.x.label = "$x$"
+            p.x.tick_rotate = 45
             p.x.min = 0
             p.x.max = math.pi
 
             p.y.label = "$y$"
+            p.y.tick_rotate = 45
 
             p.plot(Function(lambda x: math.sin(0.5*math.pi*x), samples=100),
                    line=False, markers=True,
