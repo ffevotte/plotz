@@ -19,6 +19,9 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>.
 # The GNU General Public License is contained in the file COPYING.
 
+""" Utility functions for PlotZ """
+#pylint: disable=invalid-name
+
 import sys
 import tempfile
 import shutil
@@ -28,7 +31,7 @@ import re
 
 def ppfloat(x, fmt="%f"):
     """Return a pretty string representing the given float.
-ALl useless trailing zeros are removed."""
+All useless trailing zeros are removed."""
     res = fmt % x
     if res.find(".") >= 0:
         while res.endswith("0"):
@@ -51,12 +54,17 @@ Useable in a `with` statement. Automatically takes care of deleting itself."""
     def __exit__(self, exc_type, exc_val, exc_tb):
         shutil.rmtree(self._name)
 
-class LatexOutput:
+class LatexOutput(object):
+    """Collection of LaTeX lines
+
+    This object allows progressively build a LaTeX document by inserting lines
+    in an initially empty skeleton.
+    """
     def __init__(self):
         self._lines = [r"\makeatletter", [], r"\makeatother"]
         self._index = {}
 
-    def _getKey(self, path):
+    def _get_key(self, path):
         if isinstance(path, str):
             path = path.split("/")
 
@@ -71,17 +79,23 @@ class LatexOutput:
 
         return (lines, index)
 
-    def append(self, key, a):
-        (lines, _) = self._getKey(key)
-        lines.append(a)
-
-        return self
-
     def insert(self, key, before=None, after=None):
+        """Add an insertion point in the LaTeX document.
+
+        This insertion point is identified by its key. LaTeX lines can be appended to it.
+
+        Args:
+          str key:    identifier for the insertion point
+          str before: optional string inserted before the actual contents
+          str after:  optional string inserted after the actual contents
+
+        Returns:
+          the LatexOutput object itself, in order to be able to chain method calls.
+        """
         path = key.split("/")
         name = path[-1]
         path = path[:-1]
-        (lines, index) = self._getKey(path)
+        (lines, index) = self._get_key(path)
 
         lines += ["", "%% %s "%key]
         if before is not None:
@@ -95,27 +109,40 @@ class LatexOutput:
 
         return self
 
-    def replace(self, key, a):
-        (lines, index) = self._getKey(key)
-        del lines[1:]
-        lines += a
-        index.clear()
+    def append(self, key, contents):
+        """Add LaTeX contents at an insertion point
+
+        Args:
+          str key:  identifier for the insertion point
+          contents: LaTeX line(s). Can be either a string, or an array of
+                      strings (which be interpreted as lines)
+        """
+        (lines, _) = self._get_key(key)
+        lines.append(contents)
 
         return self
 
-    def write(self, f, indent=""):
-        def _write(f, l, indent):
+    def write(self, stream):
+        """Write the LaTeX document to a stream.
+
+        Args:
+          stream: open stream where the LaTeX document is to be written
+        """
+        def _write(stream, l, indent):
             if isinstance(l, str):
-                f.write(indent+l+"%\n")
+                stream.write(indent+l+"%\n")
             else:
                 for ll in l:
-                    _write(f, ll, indent+"  ")
+                    _write(stream, ll, indent+"  ")
 
         for l in self._lines:
-            _write(f, l, indent)
+            _write(stream, l, "")
 
 
 class TikzGenerator(object):
+    """ Plot renderer: this helper class generates the TikZ code for a plot """
+    #pylint: disable=too-few-public-methods
+
     def __init__(self, plot):
         self._plot = plot
 
@@ -126,14 +153,18 @@ class TikzGenerator(object):
             .insert("/header/markers")
             .insert("/header/patterns")
             .insert("/header/thickness")
-            .insert("/background", r"\def\plotz@background{", "}")
+            .insert("/background",
+                    r"\def\plotz@background{", "}")
             .insert("/background/bbox")
             .insert("/background/legend")
-            .insert("/lines"     , r"\def\plotz@lines{", "}")
-            .insert("/foreground", r"\def\plotz@foreground{", "}")
+            .insert("/lines",
+                    r"\def\plotz@lines{", "}")
+            .insert("/foreground",
+                    r"\def\plotz@foreground{", "}")
             .insert("/foreground/axes")
             .insert("/foreground/legend")
-            .insert("/legend"    , r"\def\plotz@legend{", "}")
+            .insert("/legend",
+                    r"\def\plotz@legend{", "}")
             .insert("/scale"))
 
         self._color = None
@@ -145,6 +176,7 @@ class TikzGenerator(object):
 
 
     def run(self):
+        """Actually generate the TikZ code for a plot, and compile it to produce a pdf preview"""
         self._style()
         self._size()
         self._legend()
@@ -177,6 +209,7 @@ class TikzGenerator(object):
                            r"\tikzstyle{thick%s}=[%s]")
 
     def _define_style(self, list, path, definition):
+        #pylint: disable=redefined-builtin
         self._latex.append(path, [
             definition % (self._index(i), val)
             for (i, val) in enumerate(list)
@@ -217,13 +250,13 @@ class TikzGenerator(object):
     def _line_legend(self, line, options):
         if line.title:
             shift = -1.5 * next(self._legend_shift)
-            self._latex.append("/legend","".join([
+            self._latex.append("/legend", "".join([
                 r"\draw[%s](0,%fem)%s++(2em,0)"
                 % (options["style"], shift, options["draw"]),
                 r"node[right,inner sep=2pt,black]{%s};"%line.title,
             ]))
             self._latex.append("/legend",
-                               "\draw[%s](1em,%fem)%s;"
+                               r"\draw[%s](1em,%fem)%s;"
                                % (options["style"], shift, options["marker"]))
 
     def _line(self, line):
@@ -235,11 +268,11 @@ class TikzGenerator(object):
         for subline in line.points:
 
             points = iter(subline)
-            (x,y) = next(points)
+            (x, y) = next(points)
             self._latex.append("/lines",
                                "  (%.15f,%.15f)%s" % (x, y, options["marker"]))
 
-            for (x,y) in points:
+            for (x, y) in points:
                 self._latex.append("/lines",
                                    "%s(%.15f,%.15f)%s" % (options["draw"], x, y,
                                                           options["marker"]))
@@ -247,6 +280,7 @@ class TikzGenerator(object):
             self._latex.append("/lines", ";")
 
     def _axis(self, axis):
+        #pylint: disable=protected-access
 
         # Options
         tick_options = "rotate=%f,anchor=%s" % (axis.tick_rotate, axis.tick_anchor)
@@ -261,7 +295,7 @@ class TikzGenerator(object):
                 label_options += ",rotate=90,anchor=south,inner sep=1em"
 
         # Coordinates rotation
-        def coord(x, y):
+        def _coord(x, y):
             if isinstance(x, float):
                 x = "%.15f" % x
             if isinstance(y, float):
@@ -274,22 +308,22 @@ class TikzGenerator(object):
         # Axis
         self._latex.append("/foreground/axes",
                            r"\draw(%s)--(%s);"
-                           % (coord(axis.min, axis.pos), coord(axis.max, axis.pos)))
+                           % (_coord(axis.min, axis.pos), _coord(axis.max, axis.pos)))
 
         # Label
         if axis.label is not None:
             self._latex.append("/foreground/axes",
                                r"\draw(%s)++(%s)"
-                               % (coord(0.5*(axis.min+axis.max), axis.pos),
-                                  coord(0, "-%fem"%axis.label_shift)) +
+                               % (_coord(0.5*(axis.min+axis.max), axis.pos),
+                                  _coord(0, "-%fem"%axis.label_shift)) +
                                r"node[%s]{%s};" % (label_options, axis.label))
 
         # Ticks
         for (x, label) in axis.ticks:
             self._latex.append("/foreground/axes", [
-                r"\draw(%s)++(%s)--++(%s)" % (coord(x, axis.pos),
-                                              coord(0, "0.5em"),
-                                              coord(0, "-1em")),
+                r"\draw(%s)++(%s)--++(%s)" % (_coord(x, axis.pos),
+                                              _coord(0, "0.5em"),
+                                              _coord(0, "-1em")),
                 r"   node[%s]{%s};" % (tick_options, label)])
 
 
@@ -352,8 +386,8 @@ class TikzGenerator(object):
                              self._plot.output+".tex"])
 
             pdflatex = subprocess.Popen(["pdflatex", "-file-line-error", "standalone.tex"],
-                                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE,
-                                        cwd=tmp)
+                                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                        stdin=subprocess.PIPE, cwd=tmp)
             pdflatex.stdin.close()
 
             context = 0
