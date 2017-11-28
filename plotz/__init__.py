@@ -29,6 +29,7 @@ in a LaTeX document.
 import sys
 import math
 import re
+import numbers
 import plotz.utils
 
 __all__ = ["Plot", "Axis", "Legend", "Style", "Line", "Function", "DataFile"]
@@ -218,7 +219,7 @@ Pretty print regular values and use 10^x in the case of logarithmic scale."""
             self.min = math.floor(self.min*factor) / factor
             self.max = math.ceil(self.max*factor) / factor
 
-        if isinstance(self.ticks, float):
+        if isinstance(self.ticks, numbers.Number):
             x = self.min
             factor = 1
             while x != round(x) and abs(x) < 0.9:
@@ -368,10 +369,24 @@ class Line(object):
 
         self.points = [[]]
 
-    _color = iter(range(100))
-    _marker = iter(range(100))
-    _pattern = iter(range(100))
-    _thickness = iter(range(100))
+class LineProperties(object):
+    """ Manages the cycling through line properties """
+    #pylint: disable=too-few-public-methods
+
+    def __init__(self):
+        self.color = iter(range(100))
+        self.marker = iter(range(100))
+        self.pattern = iter(range(100))
+        self.thickness = iter(range(100))
+
+class Bar(object):
+    """ Models a bar in an histogram """
+    #pylint: disable=too-few-public-methods
+
+    def __init__(self):
+        self.title = None
+        self.color = None
+        self.points = []
 
 class Legend(object):
     """ Plot legend """
@@ -414,6 +429,13 @@ class Legend(object):
             else:
                 self.anchor = "center"
 
+class Histogram(object):
+    """ Holds all settings related to histograms plotting """
+    #pylint: disable=too-few-public-methods
+
+    def __init__(self):
+        self.bins = None
+        self.gap = 0
 
 class Plot(object):
     """ Master object to create a PlotZ figure.
@@ -473,8 +495,11 @@ class Plot(object):
         #: Plot :py:class:`Legend`
         self.legend = Legend()
 
-        self.lines = []
-
+        self.data_series = []
+        self.histogram = Histogram()
+        self.line = LineProperties()
+        self.line_type = Line
+        self.bar_type = Bar
 
     def plot(self, data, col=(0, 1), title=None, line=True, markers=False,
              color=None, pattern=None, thickness=None):
@@ -501,6 +526,7 @@ class Plot(object):
         self.y._setup = False
 
         if isinstance(data, Function) and data.range is None:
+            self._update_histogram()
             data.range = (self.x.min, self.x.max)
 
         l = Line()
@@ -508,23 +534,23 @@ class Plot(object):
         l.line = line
 
         if markers is True:
-            l.marker = next(Line._marker)
+            l.marker = next(self.line.marker)
         elif not isinstance(markers, bool):
             l.marker = markers
 
         if color is None:
-            l.color = next(Line._color)
+            l.color = next(self.line.color)
         else:
             l.color = color
 
         if line:
             if pattern is None:
-                l.pattern = next(Line._pattern)
+                l.pattern = next(self.line.pattern)
             else:
                 l.pattern = pattern
 
             if thickness is None:
-                l.thickness = next(Line._thickness)
+                l.thickness = next(self.line.thickness)
             else:
                 l.thickness = thickness
 
@@ -548,8 +574,55 @@ class Plot(object):
                 l.points.append([])
 
 
-        self.lines.append(l)
+        self.data_series.append(l)
         return l
+
+    def hist(self, data, col=0, title=None, color=None):
+        """Plot a histogram
+
+        Args:
+          data: data generator (see :py:class:`Function` and :py:class:`DataFile`)
+          int col: column index (if data has multiple columns)
+          str title: line title
+          int color: color of the bars. If left unspecified, the next color in
+            the list is taken
+
+        Returns:
+          the drawn :py:class:`Bar`, which can be modifed afterwards as needed.
+        """
+        #pylint: disable=blacklisted-name
+
+        bar = Bar()
+        bar.title = title
+
+        if color is None:
+            bar.color = next(self.line.color)
+        else:
+            bar.color = color
+
+        for y in data:
+            if isinstance(y, numbers.Number):
+                bar.points.append(y)
+            else:
+                bar.points.append(y[col])
+
+            self.y.min = min(y, self.y.min)
+            self.y.max = max(y, self.y.max)
+
+        self.data_series.append(bar)
+        return bar
+
+    def _update_histogram(self):
+        if self.histogram.bins is None:
+            for obj in self.data_series:
+                if isinstance(obj, Bar):
+                    nbins = len(obj.points)
+                    self.histogram.bins = [i-0.5 for i in range(nbins + 1)]
+                    break
+
+        if self.histogram.bins is not None:
+            self.x.min = min(self.x.min, self.histogram.bins[0])
+            self.x.max = max(self.x.max, self.histogram.bins[-1])
 
     def __enter__(self):
         return self
@@ -559,6 +632,8 @@ class Plot(object):
 
         if exc_type is not None:
             return
+
+        self._update_histogram()
 
         self.legend._update()
         self.x._update()
@@ -598,3 +673,32 @@ if __name__ == "__main__":
 
 
     test()
+
+    def hist():
+        "Test histograms"
+        import numpy as np
+        from math import exp, sqrt, pi
+        mu, sigma = 100, 15
+
+        np.random.seed(42)
+        x = mu + sigma*np.random.randn(1000)
+        hist1 = np.histogram(x, bins=20)
+
+        bins = hist1[1]
+        area = (bins[1]-bins[0])*sum(hist1[0])
+
+        with Plot("test") as p:
+            p.x.min = 50
+
+            p.x.ticks = 25
+            p.y.ticks = 25
+
+            p.histogram.bins = bins
+            p.hist(hist1[0],
+                   title="occurrence count")
+
+            p.plot(Function(lambda x: area*exp(-0.5*((x-mu)/sigma)**2) / sqrt(2*pi*sigma**2)),
+                   title="density")
+
+
+    hist()

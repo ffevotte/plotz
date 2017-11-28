@@ -141,7 +141,7 @@ class LatexOutput(object):
 
 class TikzGenerator(object):
     """ Plot renderer: this helper class generates the TikZ code for a plot """
-    #pylint: disable=too-few-public-methods
+    #pylint: disable=too-few-public-methods, too-many-instance-attributes
 
     def __init__(self, plot):
         self._plot = plot
@@ -174,6 +174,8 @@ class TikzGenerator(object):
 
         self._legend_shift = iter(range(100))
 
+        self._nbars = None
+
 
     def run(self):
         """Actually generate the TikZ code for a plot, and compile it to produce a pdf preview"""
@@ -185,8 +187,18 @@ class TikzGenerator(object):
         self._axis(self._plot.x)
         self._axis(self._plot.y)
 
-        for line in self._plot.lines:
-            self._line(line)
+        self._nbars = self._plot.histogram.gap
+        for obj in self._plot.data_series:
+            if isinstance(obj, self._plot.bar_type):
+                self._nbars += 1
+
+        ibar = iter(range(100))
+        for obj in self._plot.data_series:
+            if isinstance(obj, self._plot.line_type):
+                self._line(obj)
+
+            if isinstance(obj, self._plot.bar_type):
+                self._bar(obj, next(ibar))
 
         self._compile()
 
@@ -278,6 +290,38 @@ class TikzGenerator(object):
                                                           options["marker"]))
 
             self._latex.append("/lines", ";")
+
+
+    def _bar_legend(self, bar, style):
+        #pylint: disable=blacklisted-name
+
+        if bar.title:
+            shift = -1.5 * next(self._legend_shift)
+            self._latex.append("/legend", "".join([
+                r"\draw[%s](0,%fem)++(0,-0.5em)rectangle++(2em,1em)++(0,-0.5em)"
+                % (style, shift),
+                r"node[right,inner sep=2pt,black]{%s};" % bar.title,
+            ]))
+
+    def _bar(self, bar, index):
+        #pylint: disable=blacklisted-name
+
+        plot = self._plot
+        histogram = plot.histogram
+        bins = histogram.bins
+
+        style = "fill=color%s" % self._index(bar.color)
+        self._bar_legend(bar, style)
+
+        for i, y in enumerate(bar.points):
+            dx = (bins[i+1] - bins[i]) / self._nbars
+            x0 = bins[i] + dx * (index + 0.5 * histogram.gap)
+            x1 = x0 + dx
+
+            self._latex.append("/lines", "".join([
+                r"\draw[%s]" % style,
+                "(%.15f,%.15f)" % (x0, plot.y.min),
+                "rectangle(%.15f,%.15f);" % (x1, y)]))
 
     def _axis(self, axis):
         #pylint: disable=protected-access
