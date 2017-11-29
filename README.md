@@ -14,7 +14,7 @@ If you are plotting graphs for scientific publication, chances are that
 documents. It is designed to be as simple to use as possible, with a Python API
 allowing to produce, post-process and plot your data in the same environment.
 
-[<img src="examples/00-base/plot.svg?raw=true&sanitize=true" width="600px"
+[<img src="examples/00-base/00-gettingStarted/plot.svg?raw=true&sanitize=true" width="600px"
       alt="Example plot" />](examples)
 
 Look at the [Examples Gallery](examples) to see what `PlotZ` can produce (and

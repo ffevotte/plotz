@@ -63,7 +63,8 @@ class Function(object):
         self._i = 0
         return self
 
-    def __next__(self):
+    # necessary for Python3
+    def __next__(self): # pragma: no cover
         return self.next()
 
     def next(self):
@@ -198,7 +199,7 @@ class Axis(object):
     def _tick_format(self, x):
         """Default implementation for the ticks format.
 Pretty print regular values and use 10^x in the case of logarithmic scale."""
-        if self.scale == math.log10:
+        if self.scale == Axis.logarithmic:
             label = "$10^{%d}$" % x
         else:
             label = plotz.utils.ppfloat(x)
@@ -501,7 +502,8 @@ class Plot(object):
         self.line_type = Line
         self.bar_type = Bar
 
-    def plot(self, data, col=(0, 1), title=None, line=True, markers=False,
+    def plot(self, data, col=(0, 1), filter=None,
+             title=None, line=True, markers=False,
              color=None, pattern=None, thickness=None):
         """ Plot a curve
 
@@ -556,12 +558,9 @@ class Plot(object):
 
 
         for row in data:
-            x = row[col[0]]
-            y = row[col[1]]
-
             try:
-                x = self.x.scale(x)
-                y = self.y.scale(y)
+                x = self.x.scale(row[col[0]])
+                y = self.y.scale(row[col[1]])
 
                 l.points[-1].append((x, y))
 
@@ -570,9 +569,12 @@ class Plot(object):
 
                 self.y.min = min(y, self.y.min)
                 self.y.max = max(y, self.y.max)
-            except TypeError:
-                l.points.append([])
+            except (TypeError, IndexError):
+                if l.points[-1] != []:
+                    l.points.append([])
 
+        if l.points[-1] == []:
+            del l.points[-1]
 
         self.data_series.append(l)
         return l
@@ -646,59 +648,3 @@ class Plot(object):
             self.y.pos = self.x.min
 
         plotz.utils.TikzGenerator(self).run()
-
-if __name__ == "__main__":
-    def test():
-        "Test function for basic PlotZ usage"
-
-        with Plot("test") as p:
-            p.title = "PlotZ figure"
-
-            p.x.label = "$x$"
-            p.x.tick_rotate = 45
-            p.x.min = 0
-            p.x.max = math.pi
-
-            p.y.label = "$y$"
-            p.y.tick_rotate = 45
-
-            p.plot(Function(lambda x: math.sin(0.5*math.pi*x), samples=100),
-                   line=False, markers=True,
-                   title=r"function $\sin(\frac{\pi x}{2})$")
-
-            p.plot(Function(lambda x: math.sin(math.pi*x), samples=100),
-                   title=r"$\sin(\pi x)$")
-
-            p.legend("east", "west")
-
-
-    test()
-
-    def hist():
-        "Test histograms"
-        import numpy as np
-        from math import exp, sqrt, pi
-        mu, sigma = 100, 15
-
-        np.random.seed(42)
-        x = mu + sigma*np.random.randn(1000)
-        hist1 = np.histogram(x, bins=20)
-
-        bins = hist1[1]
-        area = (bins[1]-bins[0])*sum(hist1[0])
-
-        with Plot("test") as p:
-            p.x.min = 50
-
-            p.x.ticks = 25
-            p.y.ticks = 25
-
-            p.histogram.bins = bins
-            p.hist(hist1[0],
-                   title="occurrence count")
-
-            p.plot(Function(lambda x: area*exp(-0.5*((x-mu)/sigma)**2) / sqrt(2*pi*sigma**2)),
-                   title="density")
-
-
-    hist()

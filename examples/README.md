@@ -2,7 +2,11 @@
 
 <!---plotz table_of_contents(toc) -->
 ## [Basic features](00-base)
-[<img src="00-base/plot.svg?raw=true&sanitize=true"/>](00-base)
+### [Getting started](00-base/00-gettingStarted)
+[<img src="00-base/00-gettingStarted/plot.svg?raw=true&sanitize=true"/>](00-base/00-gettingStarted)
+
+### [Axes and scales](00-base/01-axes)
+[<img src="00-base/01-axes/plot.svg?raw=true&sanitize=true"/>](00-base/01-axes)
 
 ## [Data sources](01-dataSources)
 ### [Plotting python functions](01-dataSources/01-function)
