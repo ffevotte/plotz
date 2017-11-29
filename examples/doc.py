@@ -52,7 +52,7 @@ def head(filename, lines=10):
             if i == lines:
                 return ret + "...\n```\n"
 
-def process_README(dirname):
+def process_README(toc=None):
     plotz = re.compile("<!---plotz(.*)-->")
     filename = "README.md"
 
@@ -82,7 +82,7 @@ def process_README(dirname):
                 within_section = True
                 f.write(eval(command))
 
-    return (dirname, title, image)
+    return (title, image)
 
 
 def pdflatex(filename):
@@ -90,35 +90,63 @@ def pdflatex(filename):
     p.stdin.close()
     p.wait()
 
-toc = []
-for entry in sorted(os.listdir(".")):
-    if os.path.isdir(entry):
-        print "\nentering %s" % entry
-        with WorkingDirectory(entry):
-            print "  - generating plot"
-            subprocess.call(["python-coverage", "run", "plot.py"])
-            subprocess.call(["python3", "plot.py"])
+def make():
+    print "  - generating plot"
+    subprocess.call(["python-coverage", "run", "plot.py"])
+    subprocess.call(["python3", "plot.py"])
 
-            print "  - processing README.md"
-            toc.append(process_README(entry))
+    if os.path.exists("document.tex"):
+        print "  - compiling LaTeX document"
+        pdflatex("document.tex")
 
-            if os.path.exists("document.tex"):
-                print "  - compiling LaTeX document"
-                pdflatex("document.tex")
+    if os.path.exists("presentation.tex"):
+        print "  - compiling LaTeX presentation"
+        pdflatex("presentation.tex")
 
-            if os.path.exists("presentation.tex"):
-                print "  - compiling LaTeX presentation"
-                pdflatex("presentation.tex")
+    for filename in os.listdir("."):
+        if filename.endswith(".pdf"):
+            print "  - converting %s to svg" % filename
+            subprocess.call(["pdf2svg", filename, filename.replace(".pdf", ".svg")])
 
-            for filename in os.listdir("."):
-                if filename.endswith(".pdf"):
-                    print "  - converting %s to svg" % filename
-                    subprocess.call(["pdf2svg", filename, filename.replace(".pdf", ".svg")])
+    print "  - processing README.md"
+    return process_README()
 
-with open("README.md", "w") as f:
-    f.write("# PlotZ examples gallery\n\n")
-
+def table_of_contents(toc, level="##", path=""):
+    ret = []
     for entry in toc:
-        f.write("## [%s](%s)\n" % (entry[1], entry[0]))
-        f.write('[<img src="%s?raw=true&sanitize=true"/>](%s)\n' % (os.path.join(entry[0], entry[2]), entry[0]))
-        f.write("\n")
+        rel_path = os.path.join(path, entry[0])
+        ret.append("%s [%s](%s)" % (level, entry[1], rel_path))
+
+        if isinstance(entry[2], list):
+            ret.append(table_of_contents(entry[2], level+"#", rel_path))
+        else:
+            ret.append('[<img src="%s?raw=true&sanitize=true"/>](%s)\n' % (os.path.join(rel_path, entry[2]), rel_path))
+
+    return "\n".join(ret)
+
+
+def walk(rel_path = ""):
+    print "\nentering %s" % rel_path
+    if os.path.exists("plot.py"):
+        return (rel_path,) + make()
+
+    toc = []
+    for entry in sorted(os.listdir(os.getcwd())):
+        if not os.path.isdir(entry):
+            continue
+
+        with WorkingDirectory(entry):
+            toc.append(walk(entry))
+
+    (title, _) = process_README(toc=toc)
+    return (rel_path, title, toc)
+
+
+subprocess.call(["find", ".", "-name", ".coverage", "-delete"])
+walk()
+
+find = subprocess.Popen(["find", ".", "-name", ".coverage"],
+                        stdout=subprocess.PIPE)
+coverage_files = [name.strip() for name in find.stdout.readlines()]
+subprocess.call(["python-coverage", "combine"] + coverage_files)
+subprocess.call(["python-coverage", "html", "-d", "../htmlcov"])
