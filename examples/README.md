@@ -10,4 +10,8 @@
 
 ### [Plotting data files](01-dataSources/02-file)
 [<img src="01-dataSources/02-file/plot.svg?raw=true&sanitize=true"/>](01-dataSources/02-file)
+
+## [Plots style](02-style)
+### [Color schemes](02-style/01-colors)
+[<img src="02-style/01-colors/document.svg?raw=true&sanitize=true"/>](02-style/01-colors)
 <!---plotz end -->

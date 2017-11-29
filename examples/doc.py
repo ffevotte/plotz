@@ -54,10 +54,12 @@ def head(filename, lines=10):
 
 def process_README(toc=None):
     plotz = re.compile("<!---plotz(.*)-->")
+    img = re.compile('<img src="(.*\.svg)\?raw=true&sanitize=true"/>')
+
     filename = "README.md"
 
     title = None
-    image = "plot.svg"
+    image = None
 
     with open(filename, "r") as f:
         markdown = f.readlines()
@@ -67,6 +69,11 @@ def process_README(toc=None):
         for line in markdown:
             if title is None and line.startswith("# "):
                 title = line[2:].strip()
+
+            if image is None:
+                m = img.search(line)
+                if m:
+                    image = m.group(1).strip()
 
             if not within_section:
                 f.write(line)

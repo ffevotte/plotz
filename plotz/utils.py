@@ -374,6 +374,9 @@ class TikzGenerator(object):
     def _legend(self):
         legend = self._plot.legend
 
+        if legend.show is False:
+            return
+
         if isinstance(legend.position, str):
             position = "current bounding box." + legend.position
         else:
