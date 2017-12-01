@@ -28,6 +28,7 @@ import shutil
 import os
 import subprocess
 import re
+import itertools
 
 def ppfloat(x, fmt="%f"):
     """Return a pretty string representing the given float.
@@ -39,6 +40,10 @@ All useless trailing zeros are removed."""
         if res.endswith("."):
             res = res[0:len(res)-1]
     return res
+
+def nth(iterable, n, default=None):
+    "Returns the nth item or a default value"
+    return next(itertools.islice(iterable, n, None), default)
 
 class TmpDir(object):
     """Temporary directory

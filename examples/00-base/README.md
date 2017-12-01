@@ -8,4 +8,7 @@ Examples in this folder demonstrate the basic features of PlotZ
 
 ## [Axes and scales](01-axes)
 [<img src="01-axes/plot.svg?raw=true&sanitize=true"/>](01-axes)
+
+## [Histograms](02-histograms)
+[<img src="02-histograms/document.svg?raw=true&sanitize=true"/>](02-histograms)
 <!---plotz end -->

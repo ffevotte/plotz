@@ -87,7 +87,7 @@ def DataFile(filename, sep=re.compile(r"\s+"), comment="#"):
     """
     with open(filename, "r") as f:
         for line in f:
-            if line.startswith(comment):
+            if comment is not None and line.startswith(comment):
                 continue
 
             try:
@@ -603,11 +603,13 @@ class Plot(object):
             bar.color = color
 
         for y in data:
-            if isinstance(y, numbers.Number):
-                bar.points.append(y)
-            else:
-                bar.points.append(y[col])
+            if not isinstance(y, numbers.Number):
+                y = y[col]
 
+            if not isinstance(y, numbers.Number):
+                y = 0
+
+            bar.points.append(y)
             self.y.min = min(y, self.y.min)
             self.y.max = max(y, self.y.max)
 
