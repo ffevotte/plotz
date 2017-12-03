@@ -344,22 +344,27 @@ class Line(object):
     Plotted lines are created by :py:meth:`Plot.plot`, but they can be altered
     afterwards.
     """
-    #pylint: disable=too-few-public-methods
+    #pylint: disable=too-few-public-methods, too-many-instance-attributes
 
-    def __init__(self):
+    def __init__(self, plot):
+        self._plot = plot
+
         #: Title of the line.
         #:
         #: If set, this is what goes in the plot legend.
         self.title = None
 
         #: True if the line should be drawn.
-        self.line = None
+        self.line = True
 
         #: Index of the line color in the :py:attr:`Style.color` list.
         self.color = None
 
         #: Index of the point markers in the :py:attr:`Style.marker` list.
-        self.marker = None
+        self.markers = None
+
+        #: Filter determining when markers actually get drawn.
+        self.markers_filter = utils.Markers.always()
 
         #: Index of the line dash/dot pattern in the :py:attr:`Style.pattern`
         #: list.
@@ -369,6 +374,22 @@ class Line(object):
         self.thickness = None
 
         self.points = [[]]
+
+    def style(self, properties):
+        """Style a newly-created line
+
+        Args:
+
+        dict properties: a dictionary containing style attributes (see
+           py:class:`Line` for a list of all supported attributes). As a special
+           case, if `markers` is set to True, it will be replaced by the next
+           available marker index.
+        """
+        if properties["markers"] is True:
+            properties["markers"] = next(self._plot.line.marker)
+
+        for var in properties:
+            self.__setattr__(var, properties[var])
 
 class LineProperties(object):
     """ Manages the cycling through line properties """
@@ -502,9 +523,7 @@ class Plot(object):
         self.line_type = Line
         self.bar_type = Bar
 
-    def plot(self, data, col=(0, 1), filter=None,
-             title=None, line=True, markers=False,
-             color=None, pattern=None, thickness=None):
+    def plot(self, data, col=(0, 1), title=None):
         """ Plot a curve
 
         Args:
@@ -522,7 +541,7 @@ class Plot(object):
         Returns:
           the drawn :py:class:`Line`, which can be modifed afterwards as needed.
         """
-        #pylint: disable=too-many-arguments, protected-access
+        #pylint: disable=protected-access
 
         self.x._setup = False
         self.y._setup = False
@@ -531,31 +550,11 @@ class Plot(object):
             self._update_histogram()
             data.range = (self.x.min, self.x.max)
 
-        l = Line()
+        l = Line(self)
         l.title = title
-        l.line = line
-
-        if markers is True:
-            l.marker = next(self.line.marker)
-        elif not isinstance(markers, bool):
-            l.marker = markers
-
-        if color is None:
-            l.color = next(self.line.color)
-        else:
-            l.color = color
-
-        if line:
-            if pattern is None:
-                l.pattern = next(self.line.pattern)
-            else:
-                l.pattern = pattern
-
-            if thickness is None:
-                l.thickness = next(self.line.thickness)
-            else:
-                l.thickness = thickness
-
+        l.color = next(self.line.color)
+        l.pattern = next(self.line.pattern)
+        l.thickness = next(self.line.thickness)
 
         for row in data:
             try:
@@ -579,7 +578,7 @@ class Plot(object):
         self.data_series.append(l)
         return l
 
-    def hist(self, data, col=0, title=None, color=None):
+    def hist(self, data, col=0, title=None):
         """Plot a histogram
 
         Args:
@@ -596,11 +595,7 @@ class Plot(object):
 
         bar = Bar()
         bar.title = title
-
-        if color is None:
-            bar.color = next(self.line.color)
-        else:
-            bar.color = color
+        bar.color = next(self.line.color)
 
         for y in data:
             if not isinstance(y, numbers.Number):

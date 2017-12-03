@@ -1,7 +1,5 @@
 # Color schemes
 
-This example demonstrates how to plot the data computed by python functions.
-
 <img src="document.svg?raw=true&sanitize=true"/>
 
 ## Predefined color schemes

@@ -89,6 +89,8 @@ def process_README(toc=None):
                 within_section = True
                 f.write(eval(command))
 
+    subprocess.call(["pandoc", "-f", "markdown_github", "README.md",
+                     "-t", "html", "-o", "README.html"])
     return (title, image)
 
 
@@ -150,6 +152,7 @@ def walk(rel_path = ""):
 
 
 subprocess.call(["find", ".", "-name", ".coverage", "-delete"])
+subprocess.call(["find", ".", "-name", "htmlcov", "-exec", "rm", "-rf", "{}", ";"])
 walk()
 
 find = subprocess.Popen(["find", ".", "-name", ".coverage"],

@@ -29,6 +29,7 @@ import os
 import subprocess
 import re
 import itertools
+from math import sqrt
 
 def ppfloat(x, fmt="%f"):
     """Return a pretty string representing the given float.
@@ -44,6 +45,52 @@ All useless trailing zeros are removed."""
 def nth(iterable, n, default=None):
     "Returns the nth item or a default value"
     return next(itertools.islice(iterable, n, None), default)
+
+
+
+def consumer(func):
+    def wrapper(*args,**kw):
+        gen = func(*args, **kw)
+        next(gen)
+        return gen
+    wrapper.__name__ = func.__name__
+    wrapper.__dict__ = func.__dict__
+    wrapper.__doc__  = func.__doc__
+    return wrapper
+
+class Markers(object):
+    @staticmethod
+    @consumer
+    def always():
+        while True:
+            yield True
+
+    @staticmethod
+    @consumer
+    def oneInN(N, start=0):
+        yield
+        i = start
+        while True:
+            if i == 0:
+                i = N
+                yield True
+            else:
+                yield False
+            i -= 1
+
+    @staticmethod
+    @consumer
+    def equallySpaced(dX, start=0):
+        ret = None
+
+        while True:
+            x, y = yield ret
+            if x >= start:
+                ret = True
+                start += dX
+            else:
+                ret = False
+
 
 class TmpDir(object):
     """Temporary directory
@@ -250,7 +297,7 @@ class TikzGenerator(object):
 
 
         # Marker
-        marker = line.marker
+        marker = line.markers
         if marker is not None:
             marker = r"node{\marker%s}" % self._index(marker)
         else:
@@ -286,13 +333,19 @@ class TikzGenerator(object):
 
             points = iter(subline)
             (x, y) = next(points)
+
+            marker = options["marker"]
+            if line.markers_filter.send((x, y)) is False: marker = ""
+
             self._latex.append("/lines",
-                               "  (%.15f,%.15f)%s" % (x, y, options["marker"]))
+                               "  (%.15f,%.15f)%s" % (x, y, marker))
 
             for (x, y) in points:
+                marker = options["marker"]
+                if line.markers_filter.send((x, y)) is False: marker = ""
                 self._latex.append("/lines",
                                    "%s(%.15f,%.15f)%s" % (options["draw"], x, y,
-                                                          options["marker"]))
+                                                          marker))
 
             self._latex.append("/lines", ";")
 

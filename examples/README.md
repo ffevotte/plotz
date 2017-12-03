@@ -21,4 +21,7 @@
 ## [Plots style](02-style)
 ### [Color schemes](02-style/01-colors)
 [<img src="02-style/01-colors/document.svg?raw=true&sanitize=true"/>](02-style/01-colors)
+
+### [Markers](02-style/02-markers)
+[<img src="02-style/02-markers/plot.svg?raw=true&sanitize=true"/>](02-style/02-markers)
 <!---plotz end -->
