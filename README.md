@@ -111,6 +111,17 @@ differs from a simple scaling (such as what would be obtained using
 `\resizebox{\textwidth}{!}{...}` or `\includegraphics[width=\textwidth]{...}`)
 in that lines thicknesses, font sizes, *etc.* remain constant.
 
+<img src="examples/00-base/00-gettingStarted/document.svg" />
+
+The same figure can also be used in a Beamer presentation, where it will adapt
+to its new environment. Notice how the font changed to be consistent with the
+beamer theme. And also note that font size and line thickness remain big enough
+for the figure to remain legible even by the audience sitting in the back of the
+room:
+
+<img src="examples/00-base/00-gettingStarted/presentation.svg"
+    style="border: 1px solid blue"/>
+
 <p style="margin-top: 5em"></p>
 
 ## Contributing

@@ -64,4 +64,4 @@ scales are adjusted.
 If you include the same figure in a beamer presentation, it will nicely adapt to
 its new environment: notice how the font changed, and remains readable:
 
-<img src="presentation.svg?raw=true&sanitize=true"/>
+<img src="presentation.svg?raw=true&sanitize=true" style="border: 1px solid blue"/>
