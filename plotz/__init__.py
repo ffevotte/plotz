@@ -293,7 +293,8 @@ class Style(StrictPrototype):
         #: List of dash/dot patterns used in the plot.
         #:
         #: By default, all lines are solid.
-        self.pattern = ["solid"] * 8
+        self.pattern = []
+        self.dashed(False)
 
         #: List of markers used in the plot.
         self.marker = [
@@ -344,8 +345,26 @@ class Style(StrictPrototype):
             c = ['D7191C', 'FDAE61', 'FFFFBF', 'ABDDA4', '2B83BA']
         if name == "spectral4":
             c = ['D7191C', 'FDAE61', 'ABDDA4', '2B83BA']
+        if name == "monochrome":
+            c = ['000000'] * 8
 
         self.color = c
+
+    def dashed(self, activate=True):
+        if not activate:
+            self.pattern = ["solid"] * 8
+        else:
+            self.pattern = [
+                r"solid",
+                r"dash pattern=on 6pt off 6pt",
+                r"dash pattern=on 6pt off 3pt on 2\pgflinewidth off 3pt",
+                r"dotted",
+                r"dashed",
+                r"dash pattern=on 3pt off 2pt on \pgflinewidth off 2pt",
+                r"loosely dotted",
+                r"dash pattern=on 4pt off 2pt on \pgflinewidth off "
+                + "2pt on \pgflinewidth off 2pt on \pgflinewidth off 2pt"
+            ]
 
 class Line(StrictPrototype):
     """ A line in the plot.

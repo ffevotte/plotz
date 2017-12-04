@@ -12,6 +12,7 @@ with Plot("fourier") as p:
     p.y.min, p.y.max = 0, 1
     p.y.tick_format = lambda x: "%.1f"%x
     p.y.label = r"$\displaystyle\frac{\Vert\phi_1\Vert_2}{\Vert\phi_0\Vert_2}$"
+    p.y.label_shift *= 0.8
 
     # thickness
     p.style.thickness = ["ultra thin", "thick", "ultra thick"]
@@ -46,5 +47,16 @@ with Plot("fourier") as p:
     p.plot(DataFile("fourier.dat"), title="PDSA(9)", col=(0,9)).style({
         "thickness": 1,
     })
+
+    # black dashed
+    p.style.pattern[6] = "dashed"
+
+    p.style.color[6] = "000000"    # black = "#000000"
+
+    p.plot(DataFile("fourier.dat"), col=(0,6),
+           title=r"$\rho_{\text{\sc pdsa}}^{\text{max}}(3)$").style({
+        "thickness": 1,
+    })
+    # black dashed
 
     p.grid()

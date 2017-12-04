@@ -25,6 +25,9 @@
 ### [Markers](02-style/02-markers)
 [<img src="02-style/02-markers/plot.svg?raw=true&sanitize=true"/>](02-style/02-markers)
 
+### [Line pattern and thickness](02-style/03-linePatterns)
+[<img src="02-style/03-linePatterns/monochrome.svg?raw=true&sanitize=true"/>](02-style/03-linePatterns)
+
 ### [More complex example](02-style/04-complex)
 [<img src="02-style/04-complex/fourier.svg?raw=true&sanitize=true"/>](02-style/04-complex)
 <!---plotz end -->
