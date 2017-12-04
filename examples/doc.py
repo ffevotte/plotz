@@ -163,6 +163,9 @@ subprocess.call(["find", ".", "-name", ".coverage", "-delete"])
 subprocess.call(["find", ".", "-name", "htmlcov", "-exec", "rm", "-rf", "{}", ";"])
 walk()
 
+pdflatex("gallery")
+subprocess.call(["pdf2svg", "gallery.pdf", "gallery.svg"])
+
 find = subprocess.Popen(["find", ".", "-name", ".coverage"],
                         stdout=subprocess.PIPE)
 coverage_files = [name.strip() for name in find.stdout.readlines()]

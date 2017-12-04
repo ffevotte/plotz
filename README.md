@@ -6,16 +6,25 @@ If you are plotting graphs for scientific publication, chances are that
   C/C++/Fortran code, but you want to post-process it in a higher-level language
   like python);
   
-- you are eventually going to write a paper using LaTeX (what else?) in which
-  you'll want your figures to be nice and tightly integrated with the rest of
-  the document.
+- you are eventually going to write a paper using LaTeX in which you'll want
+  your figures to be nice and tightly integrated with the rest of the document;
+  
+- you'll then reuse the same figures in a Beamer presentation, where you will
+  still want everything to be nicely integrated with your theme... but you might
+  not like having to re-work everything so that fonts are legible and lines
+  thick enough.
 
 `PlotZ` aimz at producing publication-quality plots for inclusion in LaTeX
 documents. It is designed to be as simple to use as possible, with a Python API
-allowing to produce, post-process and plot your data in the same environment.
+allowing to produce, post-process and plot your data in the same
+environment. PlotZ actually produces TikZ code, that will seamlessly integrate
+in your LaTeX documents/presentations. The provided command allows resizing
+PlotZ images on the fly, so that your picture will always come right, whether it
+appears as a small subfigure in a paper or in a Beamer slide.
 
-[<img src="examples/00-base/00-gettingStarted/plot.svg?raw=true&sanitize=true" width="600px"
-      alt="Example plot" />](examples)
+## Examples gallery
+
+[<img src="examples/gallery.svg?raw=true&sanitize=true" alt="Gallery" />](examples)
 
 Look at the [Examples Gallery](examples) to see what `PlotZ` can produce (and
 how to do it).
@@ -34,6 +43,9 @@ source plotz/env.sh
 ## Basic usage
 
 ### Python script
+
+<img src="examples/00-base/00-gettingStarted/plot.svg?raw=true&sanitize=true"
+     alt="Example plot" />
 
 Put the following content in a python file (named `myplot.py`, for example):
 
