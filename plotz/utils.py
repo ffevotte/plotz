@@ -30,6 +30,7 @@ import subprocess
 import re
 import itertools
 from math import sqrt
+from difflib import SequenceMatcher
 
 def ppfloat(x, fmt="%f"):
     """Return a pretty string representing the given float.
@@ -90,6 +91,41 @@ class Markers(object):
                 start += dX
             else:
                 ret = False
+
+
+class StrictPrototype(object):
+    def __init__(self):
+        object.__setattr__(self, "_init", True)
+
+    def _end_init(self):
+        object.__setattr__(self, "_init", False)
+
+    def __setattr__(self, var, val):
+        msg = ""
+        try:
+            if self._init == False:
+                self.__getattribute__(var)
+            object.__setattr__(self, var, val)
+            return
+        except AttributeError as e:
+            msg = e.args[0]
+
+        attrs = {}
+        for attr in self.__dict__:
+            attrs[attr] = SequenceMatcher(None, attr, var).ratio()
+
+        fixit = ""
+        i = 0
+        for attr, val in sorted(attrs.items(), key=lambda x: 1-x[1]):
+            i += 1
+            if i > 5: break
+            if val < 0.5: break
+            fixit += "\n    " + attr
+
+        if fixit != "":
+            msg = "\n  Maybe you meant one of the following:" + fixit
+
+        raise AttributeError(msg)
 
 
 class TmpDir(object):

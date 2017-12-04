@@ -31,6 +31,7 @@ import math
 import re
 import numbers
 import plotz.utils
+from plotz.utils import StrictPrototype
 
 __all__ = ["Plot", "Axis", "Legend", "Style", "Line", "Function", "DataFile"]
 
@@ -103,7 +104,7 @@ def DataFile(filename, sep=re.compile(r"\s+"), comment="#"):
 
             yield fields
 
-class Axis(object):
+class Axis(StrictPrototype):
     """Plot axis
 
     This object stores everything related to plot axes: range, position,
@@ -112,6 +113,8 @@ class Axis(object):
     #pylint: disable=too-many-instance-attributes
 
     def __init__(self, orientation):
+        StrictPrototype.__init__(self)
+
         # Internal members
         self._orientation = orientation
         self._setup = True
@@ -172,6 +175,8 @@ class Axis(object):
 
         #: Anchor of tick labels
         self.tick_anchor = None
+
+        self._end_init()
 
     @property
     def scale(self):
@@ -267,12 +272,14 @@ Pretty print regular values and use 10^x in the case of logarithmic scale."""
         self.tick_anchor = anchor[int(round(rot) % 8)]
 
 
-class Style(object):
+class Style(StrictPrototype):
     """This object is responsible for storing all settings related to the styling
     of the plot: colors, line patterns, markers..."""
     #pylint: disable=too-few-public-methods
 
     def __init__(self):
+        StrictPrototype.__init__(self)
+
         #: List of colors used in the plot. This might be more easily set using
         #: :py:func:`colormap`
         self.color = []
@@ -299,6 +306,8 @@ class Style(object):
             r"$\blacksquare$",
             r"$\blacktriangle$",
         ]
+
+        self._end_init()
 
     def colormap(self, name=None):
         """ Setup a colormap.
@@ -338,7 +347,7 @@ class Style(object):
 
         self.color = c
 
-class Line(object):
+class Line(StrictPrototype):
     """ A line in the plot.
 
     Plotted lines are created by :py:meth:`Plot.plot`, but they can be altered
@@ -347,6 +356,7 @@ class Line(object):
     #pylint: disable=too-few-public-methods, too-many-instance-attributes
 
     def __init__(self, plot):
+        StrictPrototype.__init__(self)
         self._plot = plot
 
         #: Title of the line.
@@ -375,6 +385,8 @@ class Line(object):
 
         self.points = [[]]
 
+        self._end_init()
+
     def style(self, properties):
         """Style a newly-created line
 
@@ -401,20 +413,24 @@ class LineProperties(object):
         self.pattern = iter(range(100))
         self.thickness = iter(range(100))
 
-class Bar(object):
+class Bar(StrictPrototype):
     """ Models a bar in an histogram """
     #pylint: disable=too-few-public-methods
 
     def __init__(self):
+        StrictPrototype.__init__(self)
         self.title = None
         self.color = None
         self.points = []
+        self._end_init
 
-class Legend(object):
+class Legend(StrictPrototype):
     """ Plot legend """
     #pylint: disable=too-few-public-methods
 
     def __init__(self):
+        StrictPrototype.__init__(self)
+
         #: True if the legend should be drawn on the plot
         self.show = True
 
@@ -434,6 +450,8 @@ class Legend(object):
         #: is to be positioned where defined by :py:attr:`position`).
         self.anchor = None
 
+        self._end_init()
+
     def _update(self):
         if self.anchor is None:
             if isinstance(self.position, str):
@@ -451,15 +469,17 @@ class Legend(object):
             else:
                 self.anchor = "center"
 
-class Histogram(object):
+class Histogram(StrictPrototype):
     """ Holds all settings related to histograms plotting """
     #pylint: disable=too-few-public-methods
 
     def __init__(self):
+        StrictPrototype.__init__(self)
         self.bins = None
         self.gap = 0
+        self._end_init()
 
-class Plot(object):
+class Plot(StrictPrototype):
     """ Master object to create a PlotZ figure.
 
     This object is supposed to be used in a ``with`` statement::
@@ -472,6 +492,8 @@ class Plot(object):
     #pylint: disable=too-many-instance-attributes,too-few-public-methods
 
     def __init__(self, output):
+        StrictPrototype.__init__(self)
+
         #: Basename of the output figure
         #:
         #: Plotz will generate two files
@@ -522,6 +544,8 @@ class Plot(object):
         self.line = LineProperties()
         self.line_type = Line
         self.bar_type = Bar
+
+        self._end_init()
 
     def plot(self, data, col=(0, 1), title=None):
         """ Plot a curve

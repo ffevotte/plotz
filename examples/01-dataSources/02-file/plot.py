@@ -6,12 +6,12 @@ with Plot("plot") as p:
 
     p.x.min = 0
     p.x.max = 20.3
-    p.x.tick = 2
+    p.x.ticks = 2
     p.x.label = r"$\omega$"
 
     p.y.min = 0
     p.y.max = 1
-    p.y.tick = 0.2
+    p.y.ticks = 0.2
     p.y.tick_format = lambda y: "%.1f" % y
     p.y.label = r"$\displaystyle\frac{\Vert\phi_1\Vert_2}{\Vert\phi_0\Vert_2}$"
 
