@@ -539,6 +539,12 @@ class Plot(StrictPrototype):
         #: Plot :py:class:`Legend`
         self.legend = Legend()
 
+        #: True if vertical grid lines should be drawn
+        self.grid_x = False
+
+        #: True id horizontal grid lines should be drawn
+        self.grid_y = False
+
         self.data_series = []
         self.histogram = Histogram()
         self.line = LineProperties()
@@ -546,6 +552,11 @@ class Plot(StrictPrototype):
         self.bar_type = Bar
 
         self._end_init()
+
+    def grid(self):
+        """ Draw a grid at axes ticks """
+        self.grid_x = True
+        self.grid_y = True
 
     def plot(self, data, col=(0, 1), title=None):
         """ Plot a curve

@@ -244,6 +244,7 @@ class TikzGenerator(object):
             .insert("/background",
                     r"\def\plotz@background{", "}")
             .insert("/background/bbox")
+            .insert("/background/grid")
             .insert("/background/legend")
             .insert("/lines",
                     r"\def\plotz@lines{", "}")
@@ -274,6 +275,8 @@ class TikzGenerator(object):
 
         self._axis(self._plot.x)
         self._axis(self._plot.y)
+
+        self._grid()
 
         self._nbars = self._plot.histogram.gap
         for obj in self._plot.data_series:
@@ -464,6 +467,20 @@ class TikzGenerator(object):
                                               _coord(0, "-1em")),
                 r"   node[%s]{%s};" % (tick_options, label)])
 
+    def _grid(self):
+        plot = self._plot
+
+        if plot.grid_x:
+            for x, _ in plot.x.ticks:
+                self._latex.append("/background/grid", [
+                    r"\draw[help lines](%f,%f)--(%f,%f);" % (x, plot.y.min, x, plot.y.max)
+                ])
+
+        if plot.grid_y:
+            for y, _ in plot.y.ticks:
+                self._latex.append("/background/grid", [
+                    r"\draw[help lines](%f,%f)--(%f,%f);" % (plot.x.min, y, plot.x.max, y)
+                ])
 
     def _legend(self):
         legend = self._plot.legend
