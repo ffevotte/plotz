@@ -633,10 +633,14 @@ class Plot(StrictPrototype):
         bar.color = next(self.line.color)
 
         for y in data:
-            if not isinstance(y, numbers.Number):
+            try:
+                y = float(y)
+            except (TypeError, ValueError):
                 y = y[col]
 
-            if not isinstance(y, numbers.Number):
+            try:
+                y = float(y)
+            except (TypeError, ValueError):
                 y = 0
 
             bar.points.append(y)
