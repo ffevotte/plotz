@@ -397,7 +397,7 @@ class Line(StrictPrototype):
            case, if `markers` is set to True, it will be replaced by the next
            available marker index.
         """
-        if properties["markers"] is True:
+        if "markers" in properties and properties["markers"] is True:
             properties["markers"] = next(self._plot.line.marker)
 
         for var in properties:
