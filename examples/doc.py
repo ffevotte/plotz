@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import re
 import sys, os, os.path
 import subprocess
@@ -16,7 +18,7 @@ class WorkingDirectory(object):
         os.chdir(self._old)
 
 
-def include(filename, delimiter=None):
+def include(filename, delimiter=None, indent=""):
     try:
         prefix, suffix = ("", "\n")
         if filename.endswith(".py"):
@@ -34,7 +36,7 @@ def include(filename, delimiter=None):
                     continue
 
                 if output:
-                    ret += line
+                    ret += indent + line
 
         ret += suffix
         return ret
@@ -101,7 +103,9 @@ def pdflatex(filename):
 
 def make():
     print "  - generating plot"
+    print "    - python2 (+coverage)"
     subprocess.call(["python-coverage", "run", "plot.py"])
+    print "    - python3"
     subprocess.call(["python3", "plot.py"])
 
     if os.path.exists("document.tex"):
@@ -134,21 +138,25 @@ def table_of_contents(toc, level="##", path=""):
     return "\n".join(ret)
 
 
-def walk(rel_path = ""):
-    print "\nentering %s" % rel_path
+def walk(rel_path = "", total_path = ""):
+    if total_path != "": print "\nEntering directory '%s'" % total_path
     if os.path.exists("plot.py"):
-        return (rel_path,) + make()
+        ret = (rel_path,) + make()
 
-    toc = []
-    for entry in sorted(os.listdir(os.getcwd())):
-        if not os.path.isdir(entry):
-            continue
+    else:
+        toc = []
+        for entry in sorted(os.listdir(os.getcwd())):
+            if not os.path.isdir(entry):
+                continue
 
-        with WorkingDirectory(entry):
-            toc.append(walk(entry))
+            with WorkingDirectory(entry):
+                toc.append(walk(entry, os.path.join(total_path, entry)))
 
-    (title, _) = process_README(toc=toc)
-    return (rel_path, title, toc)
+        (title, _) = process_README(toc=toc)
+        ret = (rel_path, title, toc)
+
+    if total_path != "": print "Leaving directory '%s'" % total_path
+    return ret
 
 
 subprocess.call(["find", ".", "-name", ".coverage", "-delete"])

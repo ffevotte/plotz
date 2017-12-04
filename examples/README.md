@@ -24,4 +24,7 @@
 
 ### [Markers](02-style/02-markers)
 [<img src="02-style/02-markers/plot.svg?raw=true&sanitize=true"/>](02-style/02-markers)
+
+### [More complex example](02-style/04-complex)
+[<img src="02-style/04-complex/fourier.svg?raw=true&sanitize=true"/>](02-style/04-complex)
 <!---plotz end -->
