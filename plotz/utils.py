@@ -497,7 +497,7 @@ class TikzGenerator(object):
                            r"\node(legend)at(%s){};"
                            % (position))
         self._latex.append("/foreground",
-                           r"\node[anchor=%s,inner sep=1em]at(legend){\usebox{\plotz@boxlegend}};"
+                           r"\node[anchor=%s,inner sep=0]at(legend){\usebox{\plotz@boxlegend}};"
                            % (legend.anchor))
 
     def _title(self):

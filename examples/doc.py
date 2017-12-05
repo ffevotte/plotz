@@ -97,7 +97,7 @@ def process_README(toc=None):
 
 
 def pdflatex(filename):
-    p = subprocess.Popen(["latexmk", "-pdf", "-interaction=errorstopmode", filename], stdin=subprocess.PIPE)
+    p = subprocess.Popen(["pdflatex", "-interaction=errorstopmode", filename], stdin=subprocess.PIPE)
     p.stdin.close()
     p.wait()
 
