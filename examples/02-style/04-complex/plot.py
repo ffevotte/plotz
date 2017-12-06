@@ -1,4 +1,4 @@
-from plotz import *
+from plotz import Plot, DataFile
 from plotz.utils import Markers
 
 with Plot("fourier") as p:

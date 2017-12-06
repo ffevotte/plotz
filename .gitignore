@@ -1,3 +1,5 @@
 *~
 *.pdf
 plotz/*.pyc
+plotz/__pycache__
+htmlcov

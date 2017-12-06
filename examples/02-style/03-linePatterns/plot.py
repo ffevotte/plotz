@@ -1,5 +1,5 @@
 from math import sin, pi
-from plotz import *
+from plotz import Plot, Function, DataFile
 from plotz.utils import Markers
 
 with Plot("plot") as p:

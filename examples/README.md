@@ -1,5 +1,9 @@
 # PlotZ examples gallery
 
+This gallery is meant to be used as a form of examples-based documentation. More
+details on the PlotZ API can also be found in
+the [documentation](http://ffevotte.github.io/plotz/).
+
 <!---plotz table_of_contents(toc) -->
 ## [Basic features](00-base)
 ### [Getting started](00-base/00-gettingStarted)
@@ -31,3 +35,4 @@
 ### [More complex example](02-style/04-complex)
 [<img src="02-style/04-complex/fourier.svg?raw=true&sanitize=true"/>](02-style/04-complex)
 <!---plotz end -->
+    

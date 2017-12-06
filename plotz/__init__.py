@@ -31,7 +31,7 @@ import math
 import re
 import numbers
 import plotz.utils
-from plotz.utils import StrictPrototype
+from plotz.backend import StrictPrototype, TikzGenerator
 
 __all__ = ["Plot", "Axis", "Legend", "Style", "Line", "Function", "DataFile"]
 
@@ -401,6 +401,8 @@ class Line(StrictPrototype):
         self.markers = None
 
         #: Filter determining when markers actually get drawn.
+        #:
+        #: See :py:class:`plotz.utils.Markers` for a list of built-in filters.
         self.markers_filter = plotz.utils.Markers.always()
 
         #: Index of the line dash/dot pattern in the :py:attr:`Style.pattern`
@@ -705,4 +707,4 @@ class Plot(StrictPrototype):
         if self.y.pos is None:
             self.y.pos = self.x.min
 
-        plotz.utils.TikzGenerator(self).run()
+        TikzGenerator(self).run()

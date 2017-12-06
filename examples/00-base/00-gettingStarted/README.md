@@ -8,8 +8,8 @@ Here is some boilerplate code to produce a very simple plot:
 
 <!---plotz include("plot.py") -->
 ```python
-from plotz import *
 from math import sin, pi
+from plotz import *
 
 with Plot("plot") as p:
     p.title = r"My first \texttt{PlotZ} plot"

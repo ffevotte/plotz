@@ -1,5 +1,5 @@
-from plotz import *
 from math import sin, pi
+from plotz import Plot, Function
 
 with Plot("plot") as p:
     p.title = r"Plotting functions"

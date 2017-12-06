@@ -1,5 +1,5 @@
-from plotz import *
 from math import sin, pi
+from plotz import Plot, Function
 
 def test(colormap):
     with Plot(colormap) as p:

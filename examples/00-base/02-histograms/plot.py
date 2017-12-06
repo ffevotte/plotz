@@ -1,6 +1,6 @@
-from plotz import *
 import numpy
 from math import pi, sqrt, exp
+from plotz import Plot, Function, DataFile
 numpy.random.seed(42)
 
 mu, sigma = 100, 15

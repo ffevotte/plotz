@@ -1,5 +1,5 @@
-from plotz import *
 from math import sin, pi
+from plotz import *
 
 with Plot("plot") as p:
     p.title = r"My first \texttt{PlotZ} plot"

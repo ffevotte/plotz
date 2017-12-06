@@ -1,5 +1,5 @@
 from math import exp
-from plotz import *
+from plotz import Plot, Axis, DataFile
 from plotz.utils import ppfloat
 
 with Plot("plot") as p:
