@@ -29,7 +29,6 @@ import os
 import subprocess
 import re
 import itertools
-from math import sqrt
 from difflib import SequenceMatcher
 
 def ppfloat(x, fmt="%f"):
@@ -50,25 +49,35 @@ def nth(iterable, n, default=None):
 
 
 def consumer(func):
-    def wrapper(*args,**kw):
+    """Transform a generator function into a comsuming co-routine"""
+    def wrapper(*args, **kw):
+        """Automatically call `next()` a first time when the generator is created."""
         gen = func(*args, **kw)
         next(gen)
         return gen
     wrapper.__name__ = func.__name__
     wrapper.__dict__ = func.__dict__
-    wrapper.__doc__  = func.__doc__
+    wrapper.__doc__ = func.__doc__
     return wrapper
 
 class Markers(object):
+    """Groups all built-in marker filters"""
     @staticmethod
     @consumer
     def always():
+        """Marker filter that displays a marker for each data point"""
         while True:
             yield True
 
     @staticmethod
     @consumer
     def oneInN(N, start=0):
+        """Marker filter that displays a marker for one data point in N
+
+        Args:
+          int N: period of the markers. One data points in *N* gets a marker.
+          int start: index of the first data point to have a marker.
+        """
         yield
         i = start
         while True:
@@ -82,10 +91,17 @@ class Markers(object):
     @staticmethod
     @consumer
     def equallySpaced(dX, start=0):
+        """Marker filter that displays markers equally spaced (with respect to the *x* coordinate)
+
+        Args:
+          float dX: period of the markers. One marker gets displayed each time *x* advances by at
+                    least *dX*.
+          float start: abscissa of the first displayed marker.
+        """
         ret = None
 
         while True:
-            x, y = yield ret
+            x, _ = yield ret
             if x >= start:
                 ret = True
                 start += dX
@@ -94,6 +110,14 @@ class Markers(object):
 
 
 class StrictPrototype(object):
+    """Helper class which enforces a strict prototype
+
+    Each time a non-existing attribute is accessed for writing, an
+    AttributeError is raised, along with a help message listing existing
+    attributes with similar names.
+    """
+    #pylint: disable=too-few-public-methods
+
     def __init__(self):
         object.__setattr__(self, "_init", True)
 
@@ -103,7 +127,7 @@ class StrictPrototype(object):
     def __setattr__(self, var, val):
         msg = ""
         try:
-            if self._init == False:
+            if self._init is False:
                 self.__getattribute__(var)
             object.__setattr__(self, var, val)
             return
@@ -118,8 +142,10 @@ class StrictPrototype(object):
         i = 0
         for attr, val in sorted(attrs.items(), key=lambda x: 1-x[1]):
             i += 1
-            if i > 5: break
-            if val < 0.5: break
+            if i > 5:
+                break
+            if val < 0.5:
+                break
             fixit += "\n    " + attr
 
         if fixit != "":
@@ -376,14 +402,16 @@ class TikzGenerator(object):
             (x, y) = next(points)
 
             marker = options["marker"]
-            if line.markers_filter.send((x, y)) is False: marker = ""
+            if line.markers_filter.send((x, y)) is False:
+                marker = ""
 
             self._latex.append("/lines",
                                "  (%.15f,%.15f)%s" % (x, y, marker))
 
             for (x, y) in points:
                 marker = options["marker"]
-                if line.markers_filter.send((x, y)) is False: marker = ""
+                if line.markers_filter.send((x, y)) is False:
+                    marker = ""
                 self._latex.append("/lines",
                                    "%s(%.15f,%.15f)%s" % (options["draw"], x, y,
                                                           marker))

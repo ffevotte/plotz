@@ -326,6 +326,9 @@ class Style(StrictPrototype):
 
         *spectralN* (for N=4..8)
           N-color map with diverging colors (diverging, spectral)
+
+        *monochrome*
+          map with all colors set to black
         """
 
         # Default colormap
@@ -351,6 +354,11 @@ class Style(StrictPrototype):
         self.color = c
 
     def dashed(self, activate=True):
+        """Set the plot up to use dashed patterns for lines.
+
+        This is useful in combination with the "monochrome"
+        :py:meth:`colormap`
+        """
         if not activate:
             self.pattern = ["solid"] * 8
         else:
@@ -363,7 +371,7 @@ class Style(StrictPrototype):
                 r"dash pattern=on 3pt off 2pt on \pgflinewidth off 2pt",
                 r"loosely dotted",
                 r"dash pattern=on 4pt off 2pt on \pgflinewidth off "
-                + "2pt on \pgflinewidth off 2pt on \pgflinewidth off 2pt"
+                + r"2pt on \pgflinewidth off 2pt on \pgflinewidth off 2pt"
             ]
 
 class Line(StrictPrototype):
@@ -393,7 +401,7 @@ class Line(StrictPrototype):
         self.markers = None
 
         #: Filter determining when markers actually get drawn.
-        self.markers_filter = utils.Markers.always()
+        self.markers_filter = plotz.utils.Markers.always()
 
         #: Index of the line dash/dot pattern in the :py:attr:`Style.pattern`
         #: list.
@@ -441,7 +449,7 @@ class Bar(StrictPrototype):
         self.title = None
         self.color = None
         self.points = []
-        self._end_init
+        self._end_init()
 
 class Legend(StrictPrototype):
     """ Plot legend """
@@ -469,7 +477,7 @@ class Legend(StrictPrototype):
         #: is to be positioned where defined by :py:attr:`position`).
         self.anchor = None
 
-        #: Margin around the anchor.
+        #: Margin around the anchor (in em).
         self.margin = 0
 
         self._end_init()
@@ -482,14 +490,15 @@ class Legend(StrictPrototype):
                 self.anchor = "center"
 
     def __call__(self, position, anchor=None):
-        self.position = position
-        self.anchor = anchor
+        """Helper function to set the legend position in one call.
 
-        if anchor is None:
-            if isinstance(position, str):
-                self.anchor = position
-            else:
-                self.anchor = "center"
+        Args:
+          position: legend :py:attr:`position`.
+          anchor: legend :py:attr:`anchor`.
+        """
+        self.position = position
+        if anchor is not None:
+            self.anchor = anchor
 
 class Histogram(StrictPrototype):
     """ Holds all settings related to histograms plotting """
@@ -587,13 +596,6 @@ class Plot(StrictPrototype):
           data: data generator (see :py:class:`Function` and :py:class:`DataFile`)
           tuple col:  tuple of column indices to plot
           str title: line title
-          bool line: ``True`` if the line should be drawn
-          markers: - ``False``: avoid drawing point markers
-                   - ``True``: use the next available marker
-                   - *int*: index of the marker to use
-          int color, pattern, thickness: see the relevant :py:class:`Line`
-             attributes. If these are not specified, line attributes indices advance
-             by one for each plotted line.
 
         Returns:
           the drawn :py:class:`Line`, which can be modifed afterwards as needed.
@@ -642,8 +644,6 @@ class Plot(StrictPrototype):
           data: data generator (see :py:class:`Function` and :py:class:`DataFile`)
           int col: column index (if data has multiple columns)
           str title: line title
-          int color: color of the bars. If left unspecified, the next color in
-            the list is taken
 
         Returns:
           the drawn :py:class:`Bar`, which can be modifed afterwards as needed.
@@ -663,7 +663,7 @@ class Plot(StrictPrototype):
             try:
                 y = float(y)
             except (TypeError, ValueError):
-                y = 0
+                y = 0.
 
             bar.points.append(y)
             self.y.min = min(y, self.y.min)
