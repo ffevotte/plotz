@@ -52,3 +52,4 @@ with Plot("plot") as p:
     # no line
 
     p.legend("east", "west")
+    p.legend.margin = 1

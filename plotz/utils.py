@@ -254,6 +254,8 @@ class TikzGenerator(object):
             .insert("/foreground/legend")
             .insert("/legend",
                     r"\def\plotz@legend{", "}")
+            .insert("/legendmargin",
+                    r"\def\plotz@legendmargin{", "}")
             .insert("/scale"))
 
         self._color = None
@@ -270,7 +272,6 @@ class TikzGenerator(object):
         """Actually generate the TikZ code for a plot, and compile it to produce a pdf preview"""
         self._style()
         self._size()
-        self._legend()
         self._title()
 
         self._axis(self._plot.x)
@@ -291,6 +292,7 @@ class TikzGenerator(object):
             if isinstance(obj, self._plot.bar_type):
                 self._bar(obj, next(ibar))
 
+        self._legend()
         self._compile()
 
 
@@ -494,16 +496,22 @@ class TikzGenerator(object):
             position = "%f,%f" % legend.position
 
         self._latex.append("/background/legend",
-                           r"\node(legend)at(%s){};"
+                           r"\coordinate(legend)at(%s);"
                            % (position))
-        self._latex.append("/foreground",
-                           r"\node[anchor=%s,inner sep=0]at(legend){\usebox{\plotz@boxlegend}};"
-                           % (legend.anchor))
+        self._latex.append("/foreground", [
+            r"\node[anchor=%s,inner sep=0]at(legend){" % (legend.anchor),
+            r"  \usebox{\plotz@boxlegend}",
+            r"};"
+        ])
+
+        self._latex.append("/legendmargin",
+                           r"\draw[opacity=0](current bounding box.%s)circle[radius=%fem];"
+                           % (legend.anchor, legend.margin))
 
     def _title(self):
         if self._plot.title is not None:
             self._latex.append("/background/legend",
-                               r"\node(title)at(current bounding box.north){};")
+                               r"\coordinate(title)at(current bounding box.north);")
 
             self._latex.append("/foreground",
                                r"\draw(title)++(0,1em)node[anchor=south]{%s};"

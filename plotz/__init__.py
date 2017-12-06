@@ -462,12 +462,15 @@ class Legend(StrictPrototype):
         self.position = "north east"
 
         #: Anchor relatively to which the legend is positioned.
-
+        #:
         #: This defines which part of the legend is positioned where defined by
         #: :py:attr:`position`. This should be a string denoting a TikZ anchor
         #: (such as "north east", meaning that the top left corner of the legend
         #: is to be positioned where defined by :py:attr:`position`).
         self.anchor = None
+
+        #: Margin around the anchor.
+        self.margin = 0
 
         self._end_init()
 

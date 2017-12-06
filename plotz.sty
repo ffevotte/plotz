@@ -42,11 +42,12 @@
         (current bounding box.south west)rectangle(current bounding box.north east);
       \coordinate(SW)at(current bounding box.south west);
       \coordinate(NE)at(current bounding box.north east);
-      \fill[white,rounded corners,opacity=0.8]($(SW)+(-0.05em,-0.05em)$)rectangle($(NE)+(0.05em,0.05em)$);
-      \fill[white,rounded corners,opacity=0.6]($(SW)+(-0.10em,-0.10em)$)rectangle($(NE)+(0.10em,0.10em)$);
-      \fill[white,rounded corners,opacity=0.4]($(SW)+(-0.15em,-0.15em)$)rectangle($(NE)+(0.15em,0.15em)$);
-      \fill[white,rounded corners,opacity=0.2]($(SW)+(-0.20em,-0.20em)$)rectangle($(NE)+(0.20em,0.20em)$);
+      \def \N{10}
+      \foreach\i []in{0,1,...,\N}
+        \fill[white, rounded corners,opacity=0.2] let \n1={0.3*\i/\N} in
+          ($(SW)+(-\n1 em,-\n1 em)$)rectangle($(NE)+(\n1 em,\n1 em)$);
       \plotz@legend%
+      \plotz@legendmargin%
     \end{tikzpicture}%
   }%
   \begin{tikzpicture}%

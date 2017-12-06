@@ -19,6 +19,7 @@ with Plot("plot") as p:
         p.plot(Function(fun[i], samples=40, range=(0, 1)), title=r"pattern %d" % i)
 
     p.legend("east", "west")
+    p.legend.margin = 1
 
 
 with Plot("monochrome") as p:
