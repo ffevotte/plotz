@@ -1,0 +1,146 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Helper functions &#8212; PlotZ  documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="PlotZ python API" href="plotz.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-plotz.utils">
+<span id="helper-functions"></span><h1>Helper functions<a class="headerlink" href="#module-plotz.utils" title="Permalink to this headline">¶</a></h1>
+<p>Utility functions for PlotZ</p>
+<dl class="class">
+<dt id="plotz.utils.Markers">
+<em class="property">class </em><code class="descclassname">plotz.utils.</code><code class="descname">Markers</code><a class="reference internal" href="_modules/plotz/utils.html#Markers"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotz.utils.Markers" title="Permalink to this definition">¶</a></dt>
+<dd><p>Built-in marker filters</p>
+<dl class="staticmethod">
+<dt id="plotz.utils.Markers.always">
+<em class="property">static </em><code class="descname">always</code><span class="sig-paren">(</span><em>*args</em>, <em>**kw</em><span class="sig-paren">)</span><a class="headerlink" href="#plotz.utils.Markers.always" title="Permalink to this definition">¶</a></dt>
+<dd><p>Marker filter that displays a marker for each data point</p>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="plotz.utils.Markers.equallySpaced">
+<em class="property">static </em><code class="descname">equallySpaced</code><span class="sig-paren">(</span><em>*args</em>, <em>**kw</em><span class="sig-paren">)</span><a class="headerlink" href="#plotz.utils.Markers.equallySpaced" title="Permalink to this definition">¶</a></dt>
+<dd><p>Marker filter that displays markers equally spaced (with respect to the <em>x</em> coordinate)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>dX</strong> (<em>float</em>) – period of the markers. One marker gets displayed each time <em>x</em> advances by at
+least <em>dX</em>.</li>
+<li><strong>start</strong> (<em>float</em>) – abscissa of the first displayed marker.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="plotz.utils.Markers.oneInN">
+<em class="property">static </em><code class="descname">oneInN</code><span class="sig-paren">(</span><em>*args</em>, <em>**kw</em><span class="sig-paren">)</span><a class="headerlink" href="#plotz.utils.Markers.oneInN" title="Permalink to this definition">¶</a></dt>
+<dd><p>Marker filter that displays a marker for one data point in <em>N</em></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>N</strong> (<em>int</em>) – period of the markers. One data points in <em>N</em> gets a marker.</li>
+<li><strong>start</strong> (<em>int</em>) – index of the first data point to have a marker.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="plotz.utils.nth">
+<code class="descclassname">plotz.utils.</code><code class="descname">nth</code><span class="sig-paren">(</span><em>iterable</em>, <em>n</em>, <em>default=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/plotz/utils.html#nth"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotz.utils.nth" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the nth item or a default value</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="plotz.utils.ppfloat">
+<code class="descclassname">plotz.utils.</code><code class="descname">ppfloat</code><span class="sig-paren">(</span><em>x</em>, <em>fmt='%f'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/plotz/utils.html#ppfloat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotz.utils.ppfloat" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a pretty string representing the given float.
+All useless trailing zeros are removed.</p>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3><a href="index.html">Home</a></h3>
+<h3><a href="genindex.html">Index</a></h3>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, François Févotte.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.8</a>
+      
+      |
+      <a href="_sources/utils.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

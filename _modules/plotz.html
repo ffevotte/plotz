@@ -1,0 +1,787 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>plotz &#8212; PlotZ  documentation</title>
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for plotz</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="c1">#</span>
+<span class="c1"># This file is part of PlotZ, a plotting library</span>
+<span class="c1">#</span>
+<span class="c1"># Copyright (C) 2017</span>
+<span class="c1">#   F. Févotte     &lt;fevotte@gmail.com&gt;</span>
+<span class="c1">#</span>
+<span class="c1"># This program is free software; you can redistribute it and/or</span>
+<span class="c1"># modify it under the terms of the GNU General Public License as</span>
+<span class="c1"># published by the Free Software Foundation; either version 3 of the</span>
+<span class="c1"># License, or (at your option) any later version.</span>
+<span class="c1">#</span>
+<span class="c1"># This program is distributed in the hope that it will be useful, but</span>
+<span class="c1"># WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="c1"># MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU</span>
+<span class="c1"># General Public License for more details.</span>
+<span class="c1">#</span>
+<span class="c1"># You should have received a copy of the GNU General Public License</span>
+<span class="c1"># along with this program; if not, see &lt;http://www.gnu.org/licenses/&gt;.</span>
+<span class="c1"># The GNU General Public License is contained in the file COPYING.</span>
+
+<span class="sd">&quot;&quot;&quot;This is the python API to PlotZ.</span>
+
+<span class="sd">PlotZ is a system to produce TikZ-based plots destined to be seamlessly included</span>
+<span class="sd">in a LaTeX document.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="c1">#pylint: disable=invalid-name</span>
+
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">numbers</span>
+<span class="kn">import</span> <span class="nn">plotz.utils</span>
+<span class="kn">from</span> <span class="nn">plotz.backend</span> <span class="k">import</span> <span class="n">StrictPrototype</span><span class="p">,</span> <span class="n">TikzGenerator</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Plot&quot;</span><span class="p">,</span> <span class="s2">&quot;Axis&quot;</span><span class="p">,</span> <span class="s2">&quot;Legend&quot;</span><span class="p">,</span> <span class="s2">&quot;Style&quot;</span><span class="p">,</span> <span class="s2">&quot;Line&quot;</span><span class="p">,</span> <span class="s2">&quot;Function&quot;</span><span class="p">,</span> <span class="s2">&quot;DataFile&quot;</span><span class="p">]</span>
+
+<div class="viewcode-block" id="Function"><a class="viewcode-back" href="../plotz.html#plotz.Function">[docs]</a><span class="k">class</span> <span class="nc">Function</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Data generator for python functions</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      fun (function): python function</span>
+<span class="sd">      samples (int):  number of sampled points</span>
+<span class="sd">      range (tuple):  range of the data</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1">#pylint: disable=too-few-public-methods</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fun</span><span class="p">,</span> <span class="n">samples</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="nb">range</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1">#pylint: disable=redefined-builtin</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fun</span> <span class="o">=</span> <span class="n">fun</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_samples</span> <span class="o">=</span> <span class="n">samples</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">range</span> <span class="o">=</span> <span class="nb">range</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_x0</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_x1</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dx</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_i</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_x0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">range</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_x1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">range</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dx</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_x1</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">_x0</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_samples</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_i</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="c1"># necessary for Python3</span>
+    <span class="k">def</span> <span class="nf">__next__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="c1"># pragma: no cover</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">next</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1">#pylint: disable=missing-docstring</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_i</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_samples</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">StopIteration</span><span class="p">()</span>
+
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_x0</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_i</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">_dx</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_i</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fun</span><span class="p">(</span><span class="n">x</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="DataFile"><a class="viewcode-back" href="../plotz.html#plotz.DataFile">[docs]</a><span class="k">def</span> <span class="nf">DataFile</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;\s+&quot;</span><span class="p">),</span> <span class="n">comment</span><span class="o">=</span><span class="s2">&quot;#&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Data generator for an ASCII datafile</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      filename (str):  path to the data file</span>
+<span class="sd">      sep (str or re): delimiter for columns</span>
+<span class="sd">      comment (str):   string indicating the beginning of a comment line</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">comment</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">comment</span><span class="p">):</span>
+                <span class="k">continue</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">fields</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">sep</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+                <span class="n">fields</span> <span class="o">=</span> <span class="n">sep</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">f</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">fields</span><span class="p">):</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">fields</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                    <span class="k">pass</span>
+
+            <span class="k">yield</span> <span class="n">fields</span></div>
+
+<div class="viewcode-block" id="Axis"><a class="viewcode-back" href="../plotz.html#plotz.Axis">[docs]</a><span class="k">class</span> <span class="nc">Axis</span><span class="p">(</span><span class="n">StrictPrototype</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Plot axis</span>
+
+<span class="sd">    This object stores everything related to plot axes: range, position,</span>
+<span class="sd">    position of ticks...</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1">#pylint: disable=too-many-instance-attributes</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">orientation</span><span class="p">):</span>
+        <span class="n">StrictPrototype</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="c1"># Internal members</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_orientation</span> <span class="o">=</span> <span class="n">orientation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_setup</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_scale</span> <span class="o">=</span> <span class="n">Axis</span><span class="o">.</span><span class="n">linear</span>
+
+        <span class="c1">#: Axis label</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">label</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1">#: True if the label should be rotated</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">label_rotate</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="c1">#: Space between the axis and the label</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">label_shift</span> <span class="o">=</span> <span class="mi">2</span>
+        <span class="k">if</span> <span class="n">orientation</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">label_shift</span> <span class="o">=</span> <span class="mi">3</span>
+
+        <span class="c1">#: Maximum axis value</span>
+        <span class="c1">#:</span>
+        <span class="c1">#: This value is computed automatically when plotting data, but can be</span>
+        <span class="c1">#: changed manually if necessary.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;-inf&quot;</span><span class="p">)</span>
+        <span class="c1">#: Minimum axis value. (see :py:attr:`max` for details)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">)</span>
+
+        <span class="c1">#: Position of the axis with respect to the other axis.</span>
+        <span class="c1">#:</span>
+        <span class="c1">#: By default, the position will be set to the minimum value of the</span>
+        <span class="c1">#: other axis. In other words, by default, the *x* and *y* axes are</span>
+        <span class="c1">#: respectively drawn on the bottom and left part of the plotting area.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1">#: List of axis ticks, in one of three forms</span>
+        <span class="c1">#:</span>
+        <span class="c1">#: 1. *dx*</span>
+        <span class="c1">#: 2. [*x1*, *x2*, *x3*, ...]</span>
+        <span class="c1">#: 3. [(*x1*, *label1*), (*x2*, *label2*), ...]</span>
+        <span class="c1">#:</span>
+        <span class="c1">#: Detailed explanation:</span>
+        <span class="c1">#:</span>
+        <span class="c1">#: 1. Tick positions range from :py:attr:`min` to :py:attr:`max` by</span>
+        <span class="c1">#:    increments of *dx*. Tick labels are computed by :py:attr:`tick_format`.</span>
+        <span class="c1">#:</span>
+        <span class="c1">#: 2. Ticks are placed at positions *x1*, *x2*, *x3*... Labels are</span>
+        <span class="c1">#:    computed by :py:attr:`tick_format`.</span>
+        <span class="c1">#:</span>
+        <span class="c1">#: 3. Ticks are placed at positions *x1*, *x2*, *x3*... Labels are</span>
+        <span class="c1">#:    defined by *label1*, *label2*, *label3*...</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ticks</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1">#: Function called to format tick labels.</span>
+        <span class="c1">#:</span>
+        <span class="c1">#: The default behaviour is to label tick as :math:`10^x` in</span>
+        <span class="c1">#: logarithmic scale, and to pretty-print values in linear scale.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tick_format</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tick_format</span>
+
+        <span class="c1">#: Rotate tick labels by this amount (in degrees)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tick_rotate</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1">#: Anchor of tick labels</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tick_anchor</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_end_init</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">scale</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="s2">&quot;Axis scale: :py:class:`linear` or :py:class:`logarithmic`&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scale</span>
+
+    <span class="nd">@scale</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">scale</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fun</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_setup</span><span class="p">:</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Plotz error: can not change axis scale after setup&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_scale</span> <span class="o">=</span> <span class="n">fun</span>
+
+<div class="viewcode-block" id="Axis.linear"><a class="viewcode-back" href="../plotz.html#plotz.Axis.linear">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">linear</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+        <span class="s2">&quot;Linear scale&quot;</span>
+        <span class="k">return</span> <span class="mf">1.0</span><span class="o">*</span><span class="n">x</span></div>
+
+<div class="viewcode-block" id="Axis.logarithmic"><a class="viewcode-back" href="../plotz.html#plotz.Axis.logarithmic">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">logarithmic</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+        <span class="s2">&quot;Logarithmic scale&quot;</span>
+        <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_tick_format</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Default implementation for the ticks format.</span>
+<span class="sd">Pretty print regular values and use 10^x in the case of logarithmic scale.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale</span> <span class="o">==</span> <span class="n">Axis</span><span class="o">.</span><span class="n">logarithmic</span><span class="p">:</span>
+            <span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;$10^{</span><span class="si">%d</span><span class="s2">}$&quot;</span> <span class="o">%</span> <span class="n">x</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">label</span> <span class="o">=</span> <span class="n">plotz</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">ppfloat</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">label</span>
+
+    <span class="k">def</span> <span class="nf">_update</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_update_ticks</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_update_tick_rotation</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_update_ticks</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ticks</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">delta</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">min</span><span class="p">)</span>
+            <span class="n">factor</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="k">while</span> <span class="n">delta</span> <span class="o">&lt;</span> <span class="mi">10</span><span class="p">:</span>
+                <span class="n">delta</span> <span class="o">*=</span> <span class="mi">10</span>
+                <span class="n">factor</span> <span class="o">*=</span> <span class="mi">10</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ticks</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">delta</span><span class="o">/</span><span class="mf">5.</span><span class="p">)</span> <span class="o">/</span> <span class="n">factor</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">min</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">min</span><span class="o">*</span><span class="n">factor</span><span class="p">)</span> <span class="o">/</span> <span class="n">factor</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">max</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max</span><span class="o">*</span><span class="n">factor</span><span class="p">)</span> <span class="o">/</span> <span class="n">factor</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ticks</span><span class="p">,</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Number</span><span class="p">):</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">min</span>
+            <span class="n">factor</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="k">while</span> <span class="n">x</span> <span class="o">!=</span> <span class="nb">round</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">abs</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">0.9</span><span class="p">:</span>
+                <span class="n">x</span> <span class="o">*=</span> <span class="mi">10</span>
+                <span class="n">factor</span> <span class="o">*=</span> <span class="mi">10</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">/</span><span class="n">factor</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">min</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">min</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+
+            <span class="n">ticks</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">while</span> <span class="n">x</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max</span><span class="p">:</span>
+                <span class="n">ticks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+                <span class="n">x</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ticks</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">ticks</span> <span class="o">=</span> <span class="n">ticks</span>
+
+        <span class="k">def</span> <span class="nf">_normalize_tick</span><span class="p">(</span><span class="n">tick</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">label</span><span class="p">)</span> <span class="o">=</span> <span class="n">tick</span>
+            <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="n">tick</span>
+                <span class="n">label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tick_format</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">label</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ticks</span> <span class="o">=</span> <span class="p">[</span><span class="n">_normalize_tick</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ticks</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">_update_tick_rotation</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">anchor</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;north&quot;</span><span class="p">,</span> <span class="s2">&quot;north east&quot;</span><span class="p">,</span>
+                  <span class="s2">&quot;east&quot;</span><span class="p">,</span> <span class="s2">&quot;south east&quot;</span><span class="p">,</span>
+                  <span class="s2">&quot;south&quot;</span><span class="p">,</span> <span class="s2">&quot;south west&quot;</span><span class="p">,</span>
+                  <span class="s2">&quot;west&quot;</span><span class="p">,</span> <span class="s2">&quot;north west&quot;</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tick_anchor</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">rot</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tick_rotate</span> <span class="o">+</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_orientation</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="mf">90.</span><span class="p">)</span> <span class="o">/</span> <span class="mf">45.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tick_anchor</span> <span class="o">=</span> <span class="n">anchor</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">rot</span><span class="p">)</span> <span class="o">%</span> <span class="mi">8</span><span class="p">)]</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">anchor</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tick_anchor</span> <span class="o">==</span> <span class="n">a</span><span class="p">:</span>
+                <span class="n">rot</span> <span class="o">=</span> <span class="n">i</span>
+                <span class="k">break</span>
+
+        <span class="k">if</span> <span class="mi">90</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">tick_rotate</span> <span class="o">%</span> <span class="mi">360</span> <span class="o">&lt;</span> <span class="mi">270</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tick_rotate</span> <span class="o">+=</span> <span class="mi">180</span>
+            <span class="n">rot</span> <span class="o">+=</span> <span class="mi">4</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">tick_anchor</span> <span class="o">=</span> <span class="n">anchor</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">rot</span><span class="p">)</span> <span class="o">%</span> <span class="mi">8</span><span class="p">)]</span></div>
+
+
+<div class="viewcode-block" id="Style"><a class="viewcode-back" href="../plotz.html#plotz.Style">[docs]</a><span class="k">class</span> <span class="nc">Style</span><span class="p">(</span><span class="n">StrictPrototype</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;This object is responsible for storing all settings related to the styling</span>
+<span class="sd">    of the plot: colors, line patterns, markers...&quot;&quot;&quot;</span>
+    <span class="c1">#pylint: disable=too-few-public-methods</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">StrictPrototype</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="c1">#: List of colors used in the plot. This might be more easily set using</span>
+        <span class="c1">#: :py:func:`colormap`</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">color</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">colormap</span><span class="p">()</span>
+
+        <span class="c1">#: List of TikZ line thicknesses used in the plot</span>
+        <span class="c1">#:</span>
+        <span class="c1">#: By default, all lines are *very thick*.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">thickness</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;very thick&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="mi">8</span>
+
+        <span class="c1">#: List of dash/dot patterns used in the plot.</span>
+        <span class="c1">#:</span>
+        <span class="c1">#: By default, all lines are solid.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pattern</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dashed</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="c1">#: List of markers used in the plot.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">marker</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="sa">r</span><span class="s2">&quot;$+$&quot;</span><span class="p">,</span>
+            <span class="sa">r</span><span class="s2">&quot;$\circ$&quot;</span><span class="p">,</span>
+            <span class="sa">r</span><span class="s2">&quot;$\Box$&quot;</span><span class="p">,</span>
+            <span class="sa">r</span><span class="s2">&quot;$\triangle$&quot;</span><span class="p">,</span>
+            <span class="sa">r</span><span class="s2">&quot;$\times$&quot;</span><span class="p">,</span>
+            <span class="sa">r</span><span class="s2">&quot;$\bullet$&quot;</span><span class="p">,</span>
+            <span class="sa">r</span><span class="s2">&quot;$\blacksquare$&quot;</span><span class="p">,</span>
+            <span class="sa">r</span><span class="s2">&quot;$\blacktriangle$&quot;</span><span class="p">,</span>
+        <span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_end_init</span><span class="p">()</span>
+
+<div class="viewcode-block" id="Style.colormap"><a class="viewcode-back" href="../plotz.html#plotz.Style.colormap">[docs]</a>    <span class="k">def</span> <span class="nf">colormap</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Setup a colormap.</span>
+
+<span class="sd">        Predefined colormaps come from colorbrewer2.org:</span>
+
+<span class="sd">        *default*</span>
+<span class="sd">          8-color map with qualitatively varying colors (qualitative, set1)</span>
+
+<span class="sd">        *dark*</span>
+<span class="sd">          8-color map with qualitatively varying colors in darker tones (qualitative, dark2)</span>
+
+<span class="sd">        *paired*</span>
+<span class="sd">          8-color map with paired colors (qualitative, paired)</span>
+
+<span class="sd">        *spectralN* (for N=4..8)</span>
+<span class="sd">          N-color map with diverging colors (diverging, spectral)</span>
+
+<span class="sd">        *monochrome*</span>
+<span class="sd">          map with all colors set to black</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Default colormap</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;377EB8&quot;</span><span class="p">,</span> <span class="s2">&quot;E41A1C&quot;</span><span class="p">,</span> <span class="s2">&quot;4DAF4A&quot;</span><span class="p">,</span> <span class="s2">&quot;984EA3&quot;</span><span class="p">,</span> <span class="s2">&quot;FF7F00&quot;</span><span class="p">,</span> <span class="s2">&quot;A65628&quot;</span><span class="p">,</span> <span class="s2">&quot;F781BF&quot;</span><span class="p">,</span> <span class="s2">&quot;FFFF33&quot;</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;paired&quot;</span><span class="p">:</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;A6CEE3&#39;</span><span class="p">,</span> <span class="s1">&#39;1F78B4&#39;</span><span class="p">,</span> <span class="s1">&#39;B2DF8A&#39;</span><span class="p">,</span> <span class="s1">&#39;33A02C&#39;</span><span class="p">,</span> <span class="s1">&#39;FB9A99&#39;</span><span class="p">,</span> <span class="s1">&#39;E31A1C&#39;</span><span class="p">,</span> <span class="s1">&#39;FDBF6F&#39;</span><span class="p">,</span> <span class="s1">&#39;FF7F00&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;dark&quot;</span><span class="p">:</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;1B9E77&#39;</span><span class="p">,</span> <span class="s1">&#39;D95F02&#39;</span><span class="p">,</span> <span class="s1">&#39;7570B3&#39;</span><span class="p">,</span> <span class="s1">&#39;E7298A&#39;</span><span class="p">,</span> <span class="s1">&#39;66A61E&#39;</span><span class="p">,</span> <span class="s1">&#39;E6AB02&#39;</span><span class="p">,</span> <span class="s1">&#39;A6761D&#39;</span><span class="p">,</span> <span class="s1">&#39;666666&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;spectral8&quot;</span><span class="p">:</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;D53E4F&#39;</span><span class="p">,</span> <span class="s1">&#39;F46D43&#39;</span><span class="p">,</span> <span class="s1">&#39;FDAE61&#39;</span><span class="p">,</span> <span class="s1">&#39;FEE08B&#39;</span><span class="p">,</span> <span class="s1">&#39;E6F598&#39;</span><span class="p">,</span> <span class="s1">&#39;ABDDA4&#39;</span><span class="p">,</span> <span class="s1">&#39;66C2A5&#39;</span><span class="p">,</span> <span class="s1">&#39;3288BD&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;spectral7&quot;</span><span class="p">:</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;D53E4F&#39;</span><span class="p">,</span> <span class="s1">&#39;FC8D59&#39;</span><span class="p">,</span> <span class="s1">&#39;FEE08B&#39;</span><span class="p">,</span> <span class="s1">&#39;FFFFBF&#39;</span><span class="p">,</span> <span class="s1">&#39;E6F598&#39;</span><span class="p">,</span> <span class="s1">&#39;99D594&#39;</span><span class="p">,</span> <span class="s1">&#39;3288BD&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;spectral6&quot;</span><span class="p">:</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;D53E4F&#39;</span><span class="p">,</span> <span class="s1">&#39;FC8D59&#39;</span><span class="p">,</span> <span class="s1">&#39;FEE08B&#39;</span><span class="p">,</span> <span class="s1">&#39;E6F598&#39;</span><span class="p">,</span> <span class="s1">&#39;99D594&#39;</span><span class="p">,</span> <span class="s1">&#39;3288BD&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;spectral5&quot;</span><span class="p">:</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;D7191C&#39;</span><span class="p">,</span> <span class="s1">&#39;FDAE61&#39;</span><span class="p">,</span> <span class="s1">&#39;FFFFBF&#39;</span><span class="p">,</span> <span class="s1">&#39;ABDDA4&#39;</span><span class="p">,</span> <span class="s1">&#39;2B83BA&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;spectral4&quot;</span><span class="p">:</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;D7191C&#39;</span><span class="p">,</span> <span class="s1">&#39;FDAE61&#39;</span><span class="p">,</span> <span class="s1">&#39;ABDDA4&#39;</span><span class="p">,</span> <span class="s1">&#39;2B83BA&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;monochrome&quot;</span><span class="p">:</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;000000&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="mi">8</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">color</span> <span class="o">=</span> <span class="n">c</span></div>
+
+<div class="viewcode-block" id="Style.dashed"><a class="viewcode-back" href="../plotz.html#plotz.Style.dashed">[docs]</a>    <span class="k">def</span> <span class="nf">dashed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">activate</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set the plot up to use dashed patterns for lines.</span>
+
+<span class="sd">        This is useful in combination with the &quot;monochrome&quot;</span>
+<span class="sd">        :py:meth:`colormap`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">activate</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pattern</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;solid&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="mi">8</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pattern</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="sa">r</span><span class="s2">&quot;solid&quot;</span><span class="p">,</span>
+                <span class="sa">r</span><span class="s2">&quot;dash pattern=on 6pt off 6pt&quot;</span><span class="p">,</span>
+                <span class="sa">r</span><span class="s2">&quot;dash pattern=on 6pt off 3pt on 2\pgflinewidth off 3pt&quot;</span><span class="p">,</span>
+                <span class="sa">r</span><span class="s2">&quot;dotted&quot;</span><span class="p">,</span>
+                <span class="sa">r</span><span class="s2">&quot;dashed&quot;</span><span class="p">,</span>
+                <span class="sa">r</span><span class="s2">&quot;dash pattern=on 3pt off 2pt on \pgflinewidth off 2pt&quot;</span><span class="p">,</span>
+                <span class="sa">r</span><span class="s2">&quot;loosely dotted&quot;</span><span class="p">,</span>
+                <span class="sa">r</span><span class="s2">&quot;dash pattern=on 4pt off 2pt on \pgflinewidth off &quot;</span>
+                <span class="o">+</span> <span class="sa">r</span><span class="s2">&quot;2pt on \pgflinewidth off 2pt on \pgflinewidth off 2pt&quot;</span>
+            <span class="p">]</span></div></div>
+
+<div class="viewcode-block" id="Line"><a class="viewcode-back" href="../plotz.html#plotz.Line">[docs]</a><span class="k">class</span> <span class="nc">Line</span><span class="p">(</span><span class="n">StrictPrototype</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; A line in the plot.</span>
+
+<span class="sd">    Plotted lines are created by :py:meth:`Plot.plot`, but they can be altered</span>
+<span class="sd">    afterwards.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1">#pylint: disable=too-few-public-methods, too-many-instance-attributes</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plot</span><span class="p">):</span>
+        <span class="n">StrictPrototype</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_plot</span> <span class="o">=</span> <span class="n">plot</span>
+
+        <span class="c1">#: Title of the line.</span>
+        <span class="c1">#:</span>
+        <span class="c1">#: If set, this is what goes in the plot legend.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">title</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1">#: True if the line should be drawn.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">line</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="c1">#: Index of the line color in the :py:attr:`Style.color` list.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">color</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1">#: Index of the point markers in the :py:attr:`Style.marker` list.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">markers</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1">#: Filter determining when markers actually get drawn.</span>
+        <span class="c1">#:</span>
+        <span class="c1">#: See :py:class:`plotz.utils.Markers` for a list of built-in filters.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">markers_filter</span> <span class="o">=</span> <span class="n">plotz</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">Markers</span><span class="o">.</span><span class="n">always</span><span class="p">()</span>
+
+        <span class="c1">#: Index of the line dash/dot pattern in the :py:attr:`Style.pattern`</span>
+        <span class="c1">#: list.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pattern</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1">#: Index of the line thickness in the :py:attr:`Style.thickness` list.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">thickness</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="p">[[]]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_end_init</span><span class="p">()</span>
+
+<div class="viewcode-block" id="Line.style"><a class="viewcode-back" href="../plotz.html#plotz.Line.style">[docs]</a>    <span class="k">def</span> <span class="nf">style</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">properties</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Style a newly-created line</span>
+
+<span class="sd">        Args:</span>
+
+<span class="sd">        dict properties: a dictionary containing style attributes (see</span>
+<span class="sd">           py:class:`Line` for a list of all supported attributes). As a special</span>
+<span class="sd">           case, if `markers` is set to True, it will be replaced by the next</span>
+<span class="sd">           available marker index.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="s2">&quot;markers&quot;</span> <span class="ow">in</span> <span class="n">properties</span> <span class="ow">and</span> <span class="n">properties</span><span class="p">[</span><span class="s2">&quot;markers&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">properties</span><span class="p">[</span><span class="s2">&quot;markers&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_plot</span><span class="o">.</span><span class="n">line</span><span class="o">.</span><span class="n">marker</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">properties</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">properties</span><span class="p">[</span><span class="n">var</span><span class="p">])</span></div></div>
+
+<span class="k">class</span> <span class="nc">LineProperties</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Manages the cycling through line properties &quot;&quot;&quot;</span>
+    <span class="c1">#pylint: disable=too-few-public-methods</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">color</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">marker</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pattern</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">thickness</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">))</span>
+
+<span class="k">class</span> <span class="nc">Bar</span><span class="p">(</span><span class="n">StrictPrototype</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Models a bar in an histogram &quot;&quot;&quot;</span>
+    <span class="c1">#pylint: disable=too-few-public-methods</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">StrictPrototype</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">title</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">color</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_end_init</span><span class="p">()</span>
+
+<div class="viewcode-block" id="Legend"><a class="viewcode-back" href="../plotz.html#plotz.Legend">[docs]</a><span class="k">class</span> <span class="nc">Legend</span><span class="p">(</span><span class="n">StrictPrototype</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Plot legend &quot;&quot;&quot;</span>
+    <span class="c1">#pylint: disable=too-few-public-methods</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">StrictPrototype</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="c1">#: True if the legend should be drawn on the plot</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">show</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="c1">#: Position of the legend in the plot.</span>
+        <span class="c1">#:</span>
+        <span class="c1">#: If this is a string (such as &quot;north east&quot;), it is taken to be a</span>
+        <span class="c1">#: TikZ anchor in the plotting area.</span>
+        <span class="c1">#:</span>
+        <span class="c1">#: Otherwise, :py:attr:`position` should be a tuple of coordinates.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">position</span> <span class="o">=</span> <span class="s2">&quot;north east&quot;</span>
+
+        <span class="c1">#: Anchor relatively to which the legend is positioned.</span>
+        <span class="c1">#:</span>
+        <span class="c1">#: This defines which part of the legend is positioned where defined by</span>
+        <span class="c1">#: :py:attr:`position`. This should be a string denoting a TikZ anchor</span>
+        <span class="c1">#: (such as &quot;north east&quot;, meaning that the top left corner of the legend</span>
+        <span class="c1">#: is to be positioned where defined by :py:attr:`position`).</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">anchor</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1">#: Margin around the anchor (in em).</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">margin</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_end_init</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_update</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">anchor</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">position</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">anchor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">position</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">anchor</span> <span class="o">=</span> <span class="s2">&quot;center&quot;</span>
+
+<div class="viewcode-block" id="Legend.__call__"><a class="viewcode-back" href="../plotz.html#plotz.Legend.__call__">[docs]</a>    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">position</span><span class="p">,</span> <span class="n">anchor</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Helper function to set the legend position in one call.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">          position: legend :py:attr:`position`.</span>
+<span class="sd">          anchor: legend :py:attr:`anchor`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">position</span> <span class="o">=</span> <span class="n">position</span>
+        <span class="k">if</span> <span class="n">anchor</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">anchor</span> <span class="o">=</span> <span class="n">anchor</span></div></div>
+
+<span class="k">class</span> <span class="nc">Histogram</span><span class="p">(</span><span class="n">StrictPrototype</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Holds all settings related to histograms plotting &quot;&quot;&quot;</span>
+    <span class="c1">#pylint: disable=too-few-public-methods</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">StrictPrototype</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bins</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gap</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_end_init</span><span class="p">()</span>
+
+<div class="viewcode-block" id="Plot"><a class="viewcode-back" href="../plotz.html#plotz.Plot">[docs]</a><span class="k">class</span> <span class="nc">Plot</span><span class="p">(</span><span class="n">StrictPrototype</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Master object to create a PlotZ figure.</span>
+
+<span class="sd">    This object is supposed to be used in a ``with`` statement::</span>
+
+<span class="sd">        with Plot(&quot;myname&quot;) as p:</span>
+<span class="sd">            p.plot(...)</span>
+
+<span class="sd">            # the plot is actually generated at the end of the block</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1">#pylint: disable=too-many-instance-attributes,too-few-public-methods</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output</span><span class="p">):</span>
+        <span class="n">StrictPrototype</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="c1">#: Basename of the output figure</span>
+        <span class="c1">#:</span>
+        <span class="c1">#: Plotz will generate two files</span>
+        <span class="c1">#:   - ``&lt;output&gt;.tex``: the actual PlotZ figure, which you can include in</span>
+        <span class="c1">#:     any LaTeX document using the ``plotz`` command.</span>
+        <span class="c1">#:   - ``&lt;output&gt;.pdf``: a rendered pdf version of the figure.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span> <span class="o">=</span> <span class="n">output</span>
+
+        <span class="c1">#: x :py:class:`Axis`</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="n">Axis</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1">#: y :py:class:`Axis`</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="n">Axis</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+
+        <span class="c1">#: Plot title</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">title</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1">#: Plot width</span>
+        <span class="c1">#:</span>
+        <span class="c1">#: This defines the default width of the plotting area (*i.e* excluding</span>
+        <span class="c1">#: axis labels, title, legend...) It is used when producing the pdf</span>
+        <span class="c1">#: output, and as a default size when including the plot in a LaTeX</span>
+        <span class="c1">#: document. This size can be changed in LaTeX using</span>
+        <span class="c1">#: ``\plotz[width=...]{}``</span>
+        <span class="c1">#:</span>
+        <span class="c1">#: The default aspect ratio of the plotting area is 4:3</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">size_x</span> <span class="o">=</span> <span class="mf">266.66</span>
+
+        <span class="c1">#: Plot height (see :py:attr:`size_x` for more details)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">size_y</span> <span class="o">=</span> <span class="mf">200.00</span>
+
+        <span class="c1">#: Plot scale.</span>
+        <span class="c1">#:</span>
+        <span class="c1">#: This is a convenient way to adjust the default size of the plot</span>
+        <span class="c1">#: without affecting its aspect ratio. Both :py:attr:`size_x` and</span>
+        <span class="c1">#: :py:attr:`size_y` are multiplied by :py:attr:`scale` to determine the</span>
+        <span class="c1">#: default plot size.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scale</span> <span class="o">=</span> <span class="mf">1.0</span>
+
+        <span class="c1">#: Plot :py:class:`Style`</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">style</span> <span class="o">=</span> <span class="n">Style</span><span class="p">()</span>
+
+        <span class="c1">#: Plot :py:class:`Legend`</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">legend</span> <span class="o">=</span> <span class="n">Legend</span><span class="p">()</span>
+
+        <span class="c1">#: True if vertical grid lines should be drawn</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">grid_x</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="c1">#: True id horizontal grid lines should be drawn</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">grid_y</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_series</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">histogram</span> <span class="o">=</span> <span class="n">Histogram</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">line</span> <span class="o">=</span> <span class="n">LineProperties</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">line_type</span> <span class="o">=</span> <span class="n">Line</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bar_type</span> <span class="o">=</span> <span class="n">Bar</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_end_init</span><span class="p">()</span>
+
+<div class="viewcode-block" id="Plot.grid"><a class="viewcode-back" href="../plotz.html#plotz.Plot.grid">[docs]</a>    <span class="k">def</span> <span class="nf">grid</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Draw a grid at axes ticks &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">grid_x</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">grid_y</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="Plot.plot"><a class="viewcode-back" href="../plotz.html#plotz.Plot.plot">[docs]</a>    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">col</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">title</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Plot a curve</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">          data: data generator (see :py:class:`Function` and :py:class:`DataFile`)</span>
+<span class="sd">          tuple col:  tuple of column indices to plot</span>
+<span class="sd">          str title: line title</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">          the drawn :py:class:`Line`, which can be modifed afterwards as needed.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1">#pylint: disable=protected-access</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">_setup</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">_setup</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">Function</span><span class="p">)</span> <span class="ow">and</span> <span class="n">data</span><span class="o">.</span><span class="n">range</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_update_histogram</span><span class="p">()</span>
+            <span class="n">data</span><span class="o">.</span><span class="n">range</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">min</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">max</span><span class="p">)</span>
+
+        <span class="n">l</span> <span class="o">=</span> <span class="n">Line</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">l</span><span class="o">.</span><span class="n">title</span> <span class="o">=</span> <span class="n">title</span>
+        <span class="n">l</span><span class="o">.</span><span class="n">color</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">line</span><span class="o">.</span><span class="n">color</span><span class="p">)</span>
+        <span class="n">l</span><span class="o">.</span><span class="n">pattern</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">line</span><span class="o">.</span><span class="n">pattern</span><span class="p">)</span>
+        <span class="n">l</span><span class="o">.</span><span class="n">thickness</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">line</span><span class="o">.</span><span class="n">thickness</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">scale</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="n">col</span><span class="p">[</span><span class="mi">0</span><span class="p">]])</span>
+                <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">scale</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="n">col</span><span class="p">[</span><span class="mi">1</span><span class="p">]])</span>
+
+                <span class="n">l</span><span class="o">.</span><span class="n">points</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">))</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">min</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">min</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">max</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">max</span><span class="p">)</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">min</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">min</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">max</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">max</span><span class="p">)</span>
+            <span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="ne">IndexError</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">l</span><span class="o">.</span><span class="n">points</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="p">[]:</span>
+                    <span class="n">l</span><span class="o">.</span><span class="n">points</span><span class="o">.</span><span class="n">append</span><span class="p">([])</span>
+
+        <span class="k">if</span> <span class="n">l</span><span class="o">.</span><span class="n">points</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="p">[]:</span>
+            <span class="k">del</span> <span class="n">l</span><span class="o">.</span><span class="n">points</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_series</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">l</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">l</span></div>
+
+<div class="viewcode-block" id="Plot.hist"><a class="viewcode-back" href="../plotz.html#plotz.Plot.hist">[docs]</a>    <span class="k">def</span> <span class="nf">hist</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">col</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Plot a histogram</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">          data: data generator (see :py:class:`Function` and :py:class:`DataFile`)</span>
+<span class="sd">          int col: column index (if data has multiple columns)</span>
+<span class="sd">          str title: line title</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">          the drawn :py:class:`Bar`, which can be modifed afterwards as needed.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1">#pylint: disable=blacklisted-name</span>
+
+        <span class="n">bar</span> <span class="o">=</span> <span class="n">Bar</span><span class="p">()</span>
+        <span class="n">bar</span><span class="o">.</span><span class="n">title</span> <span class="o">=</span> <span class="n">title</span>
+        <span class="n">bar</span><span class="o">.</span><span class="n">color</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">line</span><span class="o">.</span><span class="n">color</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">y</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+            <span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+                <span class="n">y</span> <span class="o">=</span> <span class="n">y</span><span class="p">[</span><span class="n">col</span><span class="p">]</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">y</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+            <span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+                <span class="n">y</span> <span class="o">=</span> <span class="mf">0.</span>
+
+            <span class="n">bar</span><span class="o">.</span><span class="n">points</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">min</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">min</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">max</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">max</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_series</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bar</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">bar</span></div>
+
+    <span class="k">def</span> <span class="nf">_update_histogram</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">histogram</span><span class="o">.</span><span class="n">bins</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_series</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">Bar</span><span class="p">):</span>
+                    <span class="n">nbins</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">points</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">histogram</span><span class="o">.</span><span class="n">bins</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span><span class="o">-</span><span class="mf">0.5</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nbins</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span>
+                    <span class="k">break</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">histogram</span><span class="o">.</span><span class="n">bins</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">min</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">min</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">histogram</span><span class="o">.</span><span class="n">bins</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">max</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">max</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">histogram</span><span class="o">.</span><span class="n">bins</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_val</span><span class="p">,</span> <span class="n">exc_tb</span><span class="p">):</span>
+        <span class="c1">#pylint: disable=protected-access</span>
+
+        <span class="k">if</span> <span class="n">exc_type</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_update_histogram</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">legend</span><span class="o">.</span><span class="n">_update</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">_update</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">_update</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">pos</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">min</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">pos</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">min</span>
+
+        <span class="n">TikzGenerator</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">run</span><span class="p">()</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3><a href="../index.html">Home</a></h3>
+<h3><a href="genindex.html">Index</a></h3>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, François Févotte.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.8</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,615 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>plotz.backend &#8212; PlotZ  documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for plotz.backend</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="c1">#</span>
+<span class="c1"># This file is part of PlotZ, a plotting library</span>
+<span class="c1">#</span>
+<span class="c1"># Copyright (C) 2017</span>
+<span class="c1">#   F. Févotte     &lt;fevotte@gmail.com&gt;</span>
+<span class="c1">#</span>
+<span class="c1"># This program is free software; you can redistribute it and/or</span>
+<span class="c1"># modify it under the terms of the GNU General Public License as</span>
+<span class="c1"># published by the Free Software Foundation; either version 3 of the</span>
+<span class="c1"># License, or (at your option) any later version.</span>
+<span class="c1">#</span>
+<span class="c1"># This program is distributed in the hope that it will be useful, but</span>
+<span class="c1"># WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="c1"># MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU</span>
+<span class="c1"># General Public License for more details.</span>
+<span class="c1">#</span>
+<span class="c1"># You should have received a copy of the GNU General Public License</span>
+<span class="c1"># along with this program; if not, see &lt;http://www.gnu.org/licenses/&gt;.</span>
+<span class="c1"># The GNU General Public License is contained in the file COPYING.</span>
+
+<span class="sd">&quot;&quot;&quot; TikZ backend and other internal functions for PlotZ &quot;&quot;&quot;</span>
+<span class="c1">#pylint: disable=invalid-name</span>
+
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">tempfile</span>
+<span class="kn">import</span> <span class="nn">shutil</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">from</span> <span class="nn">difflib</span> <span class="k">import</span> <span class="n">SequenceMatcher</span>
+
+<span class="k">def</span> <span class="nf">consumer</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Transform a generator function into a comsuming co-routine&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">wrapper</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Automatically call `next()` a first time when the generator is created.&quot;&quot;&quot;</span>
+        <span class="n">gen</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span>
+        <span class="nb">next</span><span class="p">(</span><span class="n">gen</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">gen</span>
+    <span class="n">wrapper</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">=</span> <span class="n">func</span><span class="o">.</span><span class="vm">__name__</span>
+    <span class="n">wrapper</span><span class="o">.</span><span class="vm">__dict__</span> <span class="o">=</span> <span class="n">func</span><span class="o">.</span><span class="vm">__dict__</span>
+    <span class="n">wrapper</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="n">func</span><span class="o">.</span><span class="vm">__doc__</span>
+    <span class="k">return</span> <span class="n">wrapper</span>
+
+<span class="k">class</span> <span class="nc">StrictPrototype</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Helper class which enforces a strict prototype</span>
+
+<span class="sd">    Each time a non-existing attribute is accessed for writing, an</span>
+<span class="sd">    AttributeError is raised, along with a help message listing existing</span>
+<span class="sd">    attributes with similar names.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1">#pylint: disable=too-few-public-methods</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_init&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_end_init</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_init&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_init</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="n">var</span><span class="p">)</span>
+            <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="n">attrs</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">:</span>
+            <span class="n">attrs</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span> <span class="o">=</span> <span class="n">SequenceMatcher</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">var</span><span class="p">)</span><span class="o">.</span><span class="n">ratio</span><span class="p">()</span>
+
+        <span class="n">fixit</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">attr</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">attrs</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mi">1</span><span class="o">-</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+            <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;</span> <span class="mi">5</span><span class="p">:</span>
+                <span class="k">break</span>
+            <span class="k">if</span> <span class="n">val</span> <span class="o">&lt;</span> <span class="mf">0.5</span><span class="p">:</span>
+                <span class="k">break</span>
+            <span class="n">fixit</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">    &quot;</span> <span class="o">+</span> <span class="n">attr</span>
+
+        <span class="k">if</span> <span class="n">fixit</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">  Maybe you meant one of the following:&quot;</span> <span class="o">+</span> <span class="n">fixit</span>
+
+        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">TmpDir</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Temporary directory</span>
+<span class="sd">Useable in a `with` statement. Automatically takes care of deleting itself.&quot;&quot;&quot;</span>
+    <span class="c1">#pylint: disable=too-few-public-methods</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">mkdtemp</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;plotz&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span>
+
+    <span class="k">def</span> <span class="nf">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_val</span><span class="p">,</span> <span class="n">exc_tb</span><span class="p">):</span>
+        <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="p">)</span>
+
+<span class="k">class</span> <span class="nc">LatexOutput</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Collection of LaTeX lines</span>
+
+<span class="sd">    This object allows progressively build a LaTeX document by inserting lines</span>
+<span class="sd">    in an initially empty skeleton.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_lines</span> <span class="o">=</span> <span class="p">[</span><span class="sa">r</span><span class="s2">&quot;\makeatletter&quot;</span><span class="p">,</span> <span class="p">[],</span> <span class="sa">r</span><span class="s2">&quot;\makeatother&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_index</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">def</span> <span class="nf">_get_key</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
+
+        <span class="n">lines</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lines</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_index</span>
+        <span class="k">for</span> <span class="n">component</span> <span class="ow">in</span> <span class="n">path</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">component</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span> <span class="o">=</span> <span class="n">index</span><span class="p">[</span><span class="n">component</span><span class="p">]</span>
+            <span class="n">lines</span> <span class="o">=</span> <span class="n">lines</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">index</span> <span class="o">=</span> <span class="n">d</span>
+
+        <span class="k">return</span> <span class="p">(</span><span class="n">lines</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">insert</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">before</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">after</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Add an insertion point in the LaTeX document.</span>
+
+<span class="sd">        This insertion point is identified by its key. LaTeX lines can be appended to it.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">          str key:    identifier for the insertion point</span>
+<span class="sd">          str before: optional string inserted before the actual contents</span>
+<span class="sd">          str after:  optional string inserted after the actual contents</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">          the LatexOutput object itself, in order to be able to chain method calls.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">path</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">path</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="p">(</span><span class="n">lines</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_key</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+        <span class="n">lines</span> <span class="o">+=</span> <span class="p">[</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="si">%%</span><span class="s2"> </span><span class="si">%s</span><span class="s2"> &quot;</span><span class="o">%</span><span class="n">key</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">before</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">before</span><span class="p">)</span>
+
+        <span class="n">index</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">lines</span><span class="p">),</span> <span class="p">{})</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">([])</span>
+
+        <span class="k">if</span> <span class="n">after</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">after</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">append</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">contents</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Add LaTeX contents at an insertion point</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">          str key:  identifier for the insertion point</span>
+<span class="sd">          contents: LaTeX line(s). Can be either a string, or an array of</span>
+<span class="sd">                      strings (which be interpreted as lines)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="p">(</span><span class="n">lines</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_key</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">contents</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stream</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Write the LaTeX document to a stream.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">          stream: open stream where the LaTeX document is to be written</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">def</span> <span class="nf">_write</span><span class="p">(</span><span class="n">stream</span><span class="p">,</span> <span class="n">l</span><span class="p">,</span> <span class="n">indent</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="n">stream</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">indent</span><span class="o">+</span><span class="n">l</span><span class="o">+</span><span class="s2">&quot;%</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">ll</span> <span class="ow">in</span> <span class="n">l</span><span class="p">:</span>
+                    <span class="n">_write</span><span class="p">(</span><span class="n">stream</span><span class="p">,</span> <span class="n">ll</span><span class="p">,</span> <span class="n">indent</span><span class="o">+</span><span class="s2">&quot;  &quot;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lines</span><span class="p">:</span>
+            <span class="n">_write</span><span class="p">(</span><span class="n">stream</span><span class="p">,</span> <span class="n">l</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">TikzGenerator</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Plot renderer: this helper class generates the TikZ code for a plot &quot;&quot;&quot;</span>
+    <span class="c1">#pylint: disable=too-few-public-methods, too-many-instance-attributes</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plot</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_plot</span> <span class="o">=</span> <span class="n">plot</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_latex</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">LatexOutput</span><span class="p">()</span>
+            <span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="s2">&quot;/header&quot;</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="s2">&quot;/header/colors&quot;</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="s2">&quot;/header/markers&quot;</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="s2">&quot;/header/patterns&quot;</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="s2">&quot;/header/thickness&quot;</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="s2">&quot;/background&quot;</span><span class="p">,</span>
+                    <span class="sa">r</span><span class="s2">&quot;\def\plotz@background{&quot;</span><span class="p">,</span> <span class="s2">&quot;}&quot;</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="s2">&quot;/background/bbox&quot;</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="s2">&quot;/background/grid&quot;</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="s2">&quot;/background/legend&quot;</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="s2">&quot;/lines&quot;</span><span class="p">,</span>
+                    <span class="sa">r</span><span class="s2">&quot;\def\plotz@lines{&quot;</span><span class="p">,</span> <span class="s2">&quot;}&quot;</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="s2">&quot;/foreground&quot;</span><span class="p">,</span>
+                    <span class="sa">r</span><span class="s2">&quot;\def\plotz@foreground{&quot;</span><span class="p">,</span> <span class="s2">&quot;}&quot;</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="s2">&quot;/foreground/axes&quot;</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="s2">&quot;/foreground/legend&quot;</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="s2">&quot;/legend&quot;</span><span class="p">,</span>
+                    <span class="sa">r</span><span class="s2">&quot;\def\plotz@legend{&quot;</span><span class="p">,</span> <span class="s2">&quot;}&quot;</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="s2">&quot;/legendmargin&quot;</span><span class="p">,</span>
+                    <span class="sa">r</span><span class="s2">&quot;\def\plotz@legendmargin{&quot;</span><span class="p">,</span> <span class="s2">&quot;}&quot;</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="s2">&quot;/scale&quot;</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_color</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_marker</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pattern</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_thickness</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_legend_shift</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_nbars</span> <span class="o">=</span> <span class="kc">None</span>
+
+
+    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Actually generate the TikZ code for a plot, and compile it to produce a pdf preview&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_style</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_size</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_title</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_axis</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_plot</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_axis</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_plot</span><span class="o">.</span><span class="n">y</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_grid</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_nbars</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plot</span><span class="o">.</span><span class="n">histogram</span><span class="o">.</span><span class="n">gap</span>
+        <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plot</span><span class="o">.</span><span class="n">data_series</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plot</span><span class="o">.</span><span class="n">bar_type</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_nbars</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="n">ibar</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plot</span><span class="o">.</span><span class="n">data_series</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plot</span><span class="o">.</span><span class="n">line_type</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_line</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plot</span><span class="o">.</span><span class="n">bar_type</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_bar</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="nb">next</span><span class="p">(</span><span class="n">ibar</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_legend</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_compile</span><span class="p">()</span>
+
+
+    <span class="k">def</span> <span class="nf">_style</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_define_style</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_plot</span><span class="o">.</span><span class="n">style</span><span class="o">.</span><span class="n">color</span><span class="p">,</span>
+                           <span class="s2">&quot;/header/colors&quot;</span><span class="p">,</span>
+                           <span class="sa">r</span><span class="s2">&quot;\definecolor{color</span><span class="si">%s</span><span class="s2">}</span><span class="si">{HTML}</span><span class="s2">{</span><span class="si">%s</span><span class="s2">}&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_define_style</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_plot</span><span class="o">.</span><span class="n">style</span><span class="o">.</span><span class="n">marker</span><span class="p">,</span>
+                           <span class="s2">&quot;/header/markers&quot;</span><span class="p">,</span>
+                           <span class="sa">r</span><span class="s2">&quot;\def\marker</span><span class="si">%s</span><span class="s2">{</span><span class="si">%s</span><span class="s2">}&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_define_style</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_plot</span><span class="o">.</span><span class="n">style</span><span class="o">.</span><span class="n">pattern</span><span class="p">,</span>
+                           <span class="s2">&quot;/header/patterns&quot;</span><span class="p">,</span>
+                           <span class="sa">r</span><span class="s2">&quot;\tikzstyle{pattern</span><span class="si">%s</span><span class="s2">}=[</span><span class="si">%s</span><span class="s2">]&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_define_style</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_plot</span><span class="o">.</span><span class="n">style</span><span class="o">.</span><span class="n">thickness</span><span class="p">,</span>
+                           <span class="s2">&quot;/header/thickness&quot;</span><span class="p">,</span>
+                           <span class="sa">r</span><span class="s2">&quot;\tikzstyle{thick</span><span class="si">%s</span><span class="s2">}=[</span><span class="si">%s</span><span class="s2">]&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_define_style</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">list</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">definition</span><span class="p">):</span>
+        <span class="c1">#pylint: disable=redefined-builtin</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_latex</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="p">[</span>
+            <span class="n">definition</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_index</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="n">val</span><span class="p">)</span>
+            <span class="k">for</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+        <span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">_line_options</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">line</span><span class="p">):</span>
+
+        <span class="c1"># Style</span>
+        <span class="n">style</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;color</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_index</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">color</span><span class="p">)]</span>
+        <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">line</span><span class="p">:</span>
+            <span class="n">style</span> <span class="o">+=</span> <span class="p">[</span>
+                <span class="s2">&quot;pattern</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_index</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">pattern</span><span class="p">),</span>
+                <span class="s2">&quot;thick</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_index</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">thickness</span><span class="p">),</span>
+            <span class="p">]</span>
+
+
+        <span class="c1"># Draw line or not</span>
+        <span class="n">draw</span> <span class="o">=</span> <span class="s2">&quot;  &quot;</span>
+        <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">line</span><span class="p">:</span>
+            <span class="n">draw</span> <span class="o">=</span> <span class="s2">&quot;--&quot;</span>
+
+
+        <span class="c1"># Marker</span>
+        <span class="n">marker</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">markers</span>
+        <span class="k">if</span> <span class="n">marker</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">marker</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;node{\marker</span><span class="si">%s</span><span class="s2">}&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_index</span><span class="p">(</span><span class="n">marker</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">marker</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+
+        <span class="c1"># Options</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;style&quot;</span><span class="p">:</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">style</span><span class="p">),</span>
+            <span class="s2">&quot;draw&quot;</span><span class="p">:</span> <span class="n">draw</span><span class="p">,</span>
+            <span class="s2">&quot;marker&quot;</span><span class="p">:</span> <span class="n">marker</span><span class="p">,</span>
+        <span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">_line_legend</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">line</span><span class="p">,</span> <span class="n">options</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">title</span><span class="p">:</span>
+            <span class="n">shift</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.5</span> <span class="o">*</span> <span class="nb">next</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_legend_shift</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_latex</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;/legend&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span>
+                <span class="sa">r</span><span class="s2">&quot;\draw[</span><span class="si">%s</span><span class="s2">](0,</span><span class="si">%f</span><span class="s2">em)</span><span class="si">%s</span><span class="s2">++(2em,0)&quot;</span>
+                <span class="o">%</span> <span class="p">(</span><span class="n">options</span><span class="p">[</span><span class="s2">&quot;style&quot;</span><span class="p">],</span> <span class="n">shift</span><span class="p">,</span> <span class="n">options</span><span class="p">[</span><span class="s2">&quot;draw&quot;</span><span class="p">]),</span>
+                <span class="sa">r</span><span class="s2">&quot;node[right,inner sep=2pt,black]{</span><span class="si">%s</span><span class="s2">};&quot;</span><span class="o">%</span><span class="n">line</span><span class="o">.</span><span class="n">title</span><span class="p">,</span>
+            <span class="p">]))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_latex</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;/legend&quot;</span><span class="p">,</span>
+                               <span class="sa">r</span><span class="s2">&quot;\draw[</span><span class="si">%s</span><span class="s2">](1em,</span><span class="si">%f</span><span class="s2">em)</span><span class="si">%s</span><span class="s2">;&quot;</span>
+                               <span class="o">%</span> <span class="p">(</span><span class="n">options</span><span class="p">[</span><span class="s2">&quot;style&quot;</span><span class="p">],</span> <span class="n">shift</span><span class="p">,</span> <span class="n">options</span><span class="p">[</span><span class="s2">&quot;marker&quot;</span><span class="p">]))</span>
+
+    <span class="k">def</span> <span class="nf">_line</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">line</span><span class="p">):</span>
+        <span class="n">options</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_line_options</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_line_legend</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">options</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_latex</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;/lines&quot;</span><span class="p">,</span> <span class="sa">r</span><span class="s2">&quot;\draw[</span><span class="si">%s</span><span class="s2">]&quot;</span> <span class="o">%</span> <span class="n">options</span><span class="p">[</span><span class="s2">&quot;style&quot;</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">subline</span> <span class="ow">in</span> <span class="n">line</span><span class="o">.</span><span class="n">points</span><span class="p">:</span>
+
+            <span class="n">points</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="n">subline</span><span class="p">)</span>
+            <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">points</span><span class="p">)</span>
+
+            <span class="n">marker</span> <span class="o">=</span> <span class="n">options</span><span class="p">[</span><span class="s2">&quot;marker&quot;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">markers_filter</span><span class="o">.</span><span class="n">send</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">))</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+                <span class="n">marker</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_latex</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;/lines&quot;</span><span class="p">,</span>
+                               <span class="s2">&quot;  (</span><span class="si">%.15f</span><span class="s2">,</span><span class="si">%.15f</span><span class="s2">)</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">marker</span><span class="p">))</span>
+
+            <span class="k">for</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="ow">in</span> <span class="n">points</span><span class="p">:</span>
+                <span class="n">marker</span> <span class="o">=</span> <span class="n">options</span><span class="p">[</span><span class="s2">&quot;marker&quot;</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">markers_filter</span><span class="o">.</span><span class="n">send</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">))</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+                    <span class="n">marker</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_latex</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;/lines&quot;</span><span class="p">,</span>
+                                   <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">(</span><span class="si">%.15f</span><span class="s2">,</span><span class="si">%.15f</span><span class="s2">)</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">options</span><span class="p">[</span><span class="s2">&quot;draw&quot;</span><span class="p">],</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span>
+                                                          <span class="n">marker</span><span class="p">))</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_latex</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;/lines&quot;</span><span class="p">,</span> <span class="s2">&quot;;&quot;</span><span class="p">)</span>
+
+
+    <span class="k">def</span> <span class="nf">_bar_legend</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bar</span><span class="p">,</span> <span class="n">style</span><span class="p">):</span>
+        <span class="c1">#pylint: disable=blacklisted-name</span>
+
+        <span class="k">if</span> <span class="n">bar</span><span class="o">.</span><span class="n">title</span><span class="p">:</span>
+            <span class="n">shift</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.5</span> <span class="o">*</span> <span class="nb">next</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_legend_shift</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_latex</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;/legend&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span>
+                <span class="sa">r</span><span class="s2">&quot;\draw[</span><span class="si">%s</span><span class="s2">](0,</span><span class="si">%f</span><span class="s2">em)++(0,-0.5em)rectangle++(2em,1em)++(0,-0.5em)&quot;</span>
+                <span class="o">%</span> <span class="p">(</span><span class="n">style</span><span class="p">,</span> <span class="n">shift</span><span class="p">),</span>
+                <span class="sa">r</span><span class="s2">&quot;node[right,inner sep=2pt,black]{</span><span class="si">%s</span><span class="s2">};&quot;</span> <span class="o">%</span> <span class="n">bar</span><span class="o">.</span><span class="n">title</span><span class="p">,</span>
+            <span class="p">]))</span>
+
+    <span class="k">def</span> <span class="nf">_bar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bar</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+        <span class="c1">#pylint: disable=blacklisted-name</span>
+
+        <span class="n">plot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plot</span>
+        <span class="n">histogram</span> <span class="o">=</span> <span class="n">plot</span><span class="o">.</span><span class="n">histogram</span>
+        <span class="n">bins</span> <span class="o">=</span> <span class="n">histogram</span><span class="o">.</span><span class="n">bins</span>
+
+        <span class="n">style</span> <span class="o">=</span> <span class="s2">&quot;fill=color</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_index</span><span class="p">(</span><span class="n">bar</span><span class="o">.</span><span class="n">color</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_bar_legend</span><span class="p">(</span><span class="n">bar</span><span class="p">,</span> <span class="n">style</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">bar</span><span class="o">.</span><span class="n">points</span><span class="p">):</span>
+            <span class="n">dx</span> <span class="o">=</span> <span class="p">(</span><span class="n">bins</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">bins</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nbars</span>
+            <span class="n">x0</span> <span class="o">=</span> <span class="n">bins</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">dx</span> <span class="o">*</span> <span class="p">(</span><span class="n">index</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">histogram</span><span class="o">.</span><span class="n">gap</span><span class="p">)</span>
+            <span class="n">x1</span> <span class="o">=</span> <span class="n">x0</span> <span class="o">+</span> <span class="n">dx</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_latex</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;/lines&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span>
+                <span class="sa">r</span><span class="s2">&quot;\draw[</span><span class="si">%s</span><span class="s2">]&quot;</span> <span class="o">%</span> <span class="n">style</span><span class="p">,</span>
+                <span class="s2">&quot;(</span><span class="si">%.15f</span><span class="s2">,</span><span class="si">%.15f</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">x0</span><span class="p">,</span> <span class="n">plot</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">min</span><span class="p">),</span>
+                <span class="s2">&quot;rectangle(</span><span class="si">%.15f</span><span class="s2">,</span><span class="si">%.15f</span><span class="s2">);&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">y</span><span class="p">)]))</span>
+
+    <span class="k">def</span> <span class="nf">_axis</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="p">):</span>
+        <span class="c1">#pylint: disable=protected-access</span>
+
+        <span class="c1"># Options</span>
+        <span class="n">tick_options</span> <span class="o">=</span> <span class="s2">&quot;rotate=</span><span class="si">%f</span><span class="s2">,anchor=</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">axis</span><span class="o">.</span><span class="n">tick_rotate</span><span class="p">,</span> <span class="n">axis</span><span class="o">.</span><span class="n">tick_anchor</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">axis</span><span class="o">.</span><span class="n">_orientation</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">label_options</span> <span class="o">=</span> <span class="s2">&quot;anchor=north&quot;</span>
+            <span class="k">if</span> <span class="n">axis</span><span class="o">.</span><span class="n">label_rotate</span><span class="p">:</span>
+                <span class="n">label_options</span> <span class="o">+=</span> <span class="s2">&quot;,rotate=90,anchor=east,inner sep=1em&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">label_options</span> <span class="o">=</span> <span class="s2">&quot;anchor=east&quot;</span>
+            <span class="k">if</span> <span class="n">axis</span><span class="o">.</span><span class="n">label_rotate</span><span class="p">:</span>
+                <span class="n">label_options</span> <span class="o">+=</span> <span class="s2">&quot;,rotate=90,anchor=south,inner sep=1em&quot;</span>
+
+        <span class="c1"># Coordinates rotation</span>
+        <span class="k">def</span> <span class="nf">_coord</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%.15f</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">x</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+                <span class="n">y</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%.15f</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">y</span>
+
+            <span class="k">if</span> <span class="n">axis</span><span class="o">.</span><span class="n">_orientation</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">return</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">,</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+            <span class="k">return</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">,</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+
+        <span class="c1"># Axis</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_latex</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;/foreground/axes&quot;</span><span class="p">,</span>
+                           <span class="sa">r</span><span class="s2">&quot;\draw(</span><span class="si">%s</span><span class="s2">)--(</span><span class="si">%s</span><span class="s2">);&quot;</span>
+                           <span class="o">%</span> <span class="p">(</span><span class="n">_coord</span><span class="p">(</span><span class="n">axis</span><span class="o">.</span><span class="n">min</span><span class="p">,</span> <span class="n">axis</span><span class="o">.</span><span class="n">pos</span><span class="p">),</span> <span class="n">_coord</span><span class="p">(</span><span class="n">axis</span><span class="o">.</span><span class="n">max</span><span class="p">,</span> <span class="n">axis</span><span class="o">.</span><span class="n">pos</span><span class="p">)))</span>
+
+        <span class="c1"># Label</span>
+        <span class="k">if</span> <span class="n">axis</span><span class="o">.</span><span class="n">label</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_latex</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;/foreground/axes&quot;</span><span class="p">,</span>
+                               <span class="sa">r</span><span class="s2">&quot;\draw(</span><span class="si">%s</span><span class="s2">)++(</span><span class="si">%s</span><span class="s2">)&quot;</span>
+                               <span class="o">%</span> <span class="p">(</span><span class="n">_coord</span><span class="p">(</span><span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="n">axis</span><span class="o">.</span><span class="n">min</span><span class="o">+</span><span class="n">axis</span><span class="o">.</span><span class="n">max</span><span class="p">),</span> <span class="n">axis</span><span class="o">.</span><span class="n">pos</span><span class="p">),</span>
+                                  <span class="n">_coord</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;-</span><span class="si">%f</span><span class="s2">em&quot;</span><span class="o">%</span><span class="n">axis</span><span class="o">.</span><span class="n">label_shift</span><span class="p">))</span> <span class="o">+</span>
+                               <span class="sa">r</span><span class="s2">&quot;node[</span><span class="si">%s</span><span class="s2">]{</span><span class="si">%s</span><span class="s2">};&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">label_options</span><span class="p">,</span> <span class="n">axis</span><span class="o">.</span><span class="n">label</span><span class="p">))</span>
+
+        <span class="c1"># Ticks</span>
+        <span class="k">for</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">label</span><span class="p">)</span> <span class="ow">in</span> <span class="n">axis</span><span class="o">.</span><span class="n">ticks</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_latex</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;/foreground/axes&quot;</span><span class="p">,</span> <span class="p">[</span>
+                <span class="sa">r</span><span class="s2">&quot;\draw(</span><span class="si">%s</span><span class="s2">)++(</span><span class="si">%s</span><span class="s2">)--++(</span><span class="si">%s</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">_coord</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">axis</span><span class="o">.</span><span class="n">pos</span><span class="p">),</span>
+                                              <span class="n">_coord</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;0.5em&quot;</span><span class="p">),</span>
+                                              <span class="n">_coord</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;-1em&quot;</span><span class="p">)),</span>
+                <span class="sa">r</span><span class="s2">&quot;   node[</span><span class="si">%s</span><span class="s2">]{</span><span class="si">%s</span><span class="s2">};&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">tick_options</span><span class="p">,</span> <span class="n">label</span><span class="p">)])</span>
+
+    <span class="k">def</span> <span class="nf">_grid</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">plot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plot</span>
+
+        <span class="k">if</span> <span class="n">plot</span><span class="o">.</span><span class="n">grid_x</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">plot</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">ticks</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_latex</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;/background/grid&quot;</span><span class="p">,</span> <span class="p">[</span>
+                    <span class="sa">r</span><span class="s2">&quot;\draw[help lines](</span><span class="si">%f</span><span class="s2">,</span><span class="si">%f</span><span class="s2">)--(</span><span class="si">%f</span><span class="s2">,</span><span class="si">%f</span><span class="s2">);&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">plot</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">min</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">plot</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">max</span><span class="p">)</span>
+                <span class="p">])</span>
+
+        <span class="k">if</span> <span class="n">plot</span><span class="o">.</span><span class="n">grid_y</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">y</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">plot</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">ticks</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_latex</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;/background/grid&quot;</span><span class="p">,</span> <span class="p">[</span>
+                    <span class="sa">r</span><span class="s2">&quot;\draw[help lines](</span><span class="si">%f</span><span class="s2">,</span><span class="si">%f</span><span class="s2">)--(</span><span class="si">%f</span><span class="s2">,</span><span class="si">%f</span><span class="s2">);&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">plot</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">min</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">plot</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">max</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+                <span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">_legend</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">legend</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plot</span><span class="o">.</span><span class="n">legend</span>
+
+        <span class="k">if</span> <span class="n">legend</span><span class="o">.</span><span class="n">show</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">legend</span><span class="o">.</span><span class="n">position</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">position</span> <span class="o">=</span> <span class="s2">&quot;current bounding box.&quot;</span> <span class="o">+</span> <span class="n">legend</span><span class="o">.</span><span class="n">position</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">position</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%f</span><span class="s2">,</span><span class="si">%f</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">legend</span><span class="o">.</span><span class="n">position</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_latex</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;/background/legend&quot;</span><span class="p">,</span>
+                           <span class="sa">r</span><span class="s2">&quot;\coordinate(legend)at(</span><span class="si">%s</span><span class="s2">);&quot;</span>
+                           <span class="o">%</span> <span class="p">(</span><span class="n">position</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_latex</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;/foreground&quot;</span><span class="p">,</span> <span class="p">[</span>
+            <span class="sa">r</span><span class="s2">&quot;\node[anchor=</span><span class="si">%s</span><span class="s2">,inner sep=0]at(legend){&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">legend</span><span class="o">.</span><span class="n">anchor</span><span class="p">),</span>
+            <span class="sa">r</span><span class="s2">&quot;  \usebox{\plotz@boxlegend}&quot;</span><span class="p">,</span>
+            <span class="sa">r</span><span class="s2">&quot;};&quot;</span>
+        <span class="p">])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_latex</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;/legendmargin&quot;</span><span class="p">,</span>
+                           <span class="sa">r</span><span class="s2">&quot;\draw[opacity=0](current bounding box.</span><span class="si">%s</span><span class="s2">)circle[radius=</span><span class="si">%f</span><span class="s2">em];&quot;</span>
+                           <span class="o">%</span> <span class="p">(</span><span class="n">legend</span><span class="o">.</span><span class="n">anchor</span><span class="p">,</span> <span class="n">legend</span><span class="o">.</span><span class="n">margin</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">_title</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plot</span><span class="o">.</span><span class="n">title</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_latex</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;/background/legend&quot;</span><span class="p">,</span>
+                               <span class="sa">r</span><span class="s2">&quot;\coordinate(title)at(current bounding box.north);&quot;</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_latex</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;/foreground&quot;</span><span class="p">,</span>
+                               <span class="sa">r</span><span class="s2">&quot;\draw(title)++(0,1em)node[anchor=south]{</span><span class="si">%s</span><span class="s2">};&quot;</span>
+                               <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plot</span><span class="o">.</span><span class="n">title</span><span class="p">)</span>
+
+
+    <span class="k">def</span> <span class="nf">_size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">plot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plot</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_latex</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;/background/bbox&quot;</span><span class="p">,</span>
+                           <span class="sa">r</span><span class="s2">&quot;\fill[white](</span><span class="si">%f</span><span class="s2">,</span><span class="si">%f</span><span class="s2">)rectangle(</span><span class="si">%f</span><span class="s2">,</span><span class="si">%f</span><span class="s2">);&quot;</span><span class="o">%</span><span class="p">(</span>
+                               <span class="n">plot</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">min</span><span class="p">,</span> <span class="n">plot</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">min</span><span class="p">,</span>
+                               <span class="n">plot</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">max</span><span class="p">,</span> <span class="n">plot</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">max</span>
+                           <span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_latex</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;/scale&quot;</span><span class="p">,</span> <span class="sa">r</span><span class="s2">&quot;\def\plotz@scalex{</span><span class="si">%f</span><span class="s2">}&quot;</span>
+                           <span class="o">%</span> <span class="p">(</span><span class="n">plot</span><span class="o">.</span><span class="n">size_x</span><span class="o">*</span><span class="n">plot</span><span class="o">.</span><span class="n">scale</span> <span class="o">/</span> <span class="p">(</span><span class="n">plot</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">max</span><span class="o">-</span><span class="n">plot</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">min</span><span class="p">)))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_latex</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;/scale&quot;</span><span class="p">,</span> <span class="sa">r</span><span class="s2">&quot;\def\plotz@scaley{</span><span class="si">%f</span><span class="s2">}&quot;</span>
+                           <span class="o">%</span> <span class="p">(</span><span class="n">plot</span><span class="o">.</span><span class="n">size_y</span><span class="o">*</span><span class="n">plot</span><span class="o">.</span><span class="n">scale</span> <span class="o">/</span> <span class="p">(</span><span class="n">plot</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">max</span><span class="o">-</span><span class="n">plot</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">min</span><span class="p">)))</span>
+
+    <span class="k">def</span> <span class="nf">_compile</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">with</span> <span class="n">TmpDir</span><span class="p">()</span> <span class="k">as</span> <span class="n">tmp</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tmp</span><span class="p">,</span> <span class="s2">&quot;standalone.tex&quot;</span><span class="p">),</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;%</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span>
+                    <span class="sa">r</span><span class="s2">&quot;\errorstopmode&quot;</span><span class="p">,</span>
+                    <span class="sa">r</span><span class="s2">&quot;\documentclass</span><span class="si">{standalone}</span><span class="s2">&quot;</span><span class="p">,</span>
+                    <span class="sa">r</span><span class="s2">&quot;\usepackage</span><span class="si">{plotz}</span><span class="s2">&quot;</span><span class="p">,</span>
+                    <span class="sa">r</span><span class="s2">&quot;\begin</span><span class="si">{document}</span><span class="s2">&quot;</span><span class="p">,</span>
+                    <span class="sa">r</span><span class="s2">&quot;\plotz</span><span class="si">{plotz}</span><span class="s2">&quot;</span><span class="p">,</span>
+                    <span class="sa">r</span><span class="s2">&quot;\end</span><span class="si">{document}</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="p">]))</span>
+
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tmp</span><span class="p">,</span> <span class="s2">&quot;plotz.tex&quot;</span><span class="p">),</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_latex</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+            <span class="n">subprocess</span><span class="o">.</span><span class="n">call</span><span class="p">([</span><span class="s2">&quot;cp&quot;</span><span class="p">,</span>
+                             <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tmp</span><span class="p">,</span> <span class="s2">&quot;plotz.tex&quot;</span><span class="p">),</span>
+                             <span class="bp">self</span><span class="o">.</span><span class="n">_plot</span><span class="o">.</span><span class="n">output</span><span class="o">+</span><span class="s2">&quot;.tex&quot;</span><span class="p">])</span>
+
+            <span class="n">pdflatex</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">([</span><span class="s2">&quot;pdflatex&quot;</span><span class="p">,</span> <span class="s2">&quot;-file-line-error&quot;</span><span class="p">,</span> <span class="s2">&quot;standalone.tex&quot;</span><span class="p">],</span>
+                                        <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">STDOUT</span><span class="p">,</span>
+                                        <span class="n">stdin</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">cwd</span><span class="o">=</span><span class="n">tmp</span><span class="p">)</span>
+            <span class="n">pdflatex</span><span class="o">.</span><span class="n">stdin</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+            <span class="n">context</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">error</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;^.+:\d+: &quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">pdflatex</span><span class="o">.</span><span class="n">stdout</span><span class="p">:</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">error</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
+                    <span class="n">context</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">context</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+                    <span class="n">context</span> <span class="o">-=</span> <span class="mi">1</span>
+
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tmp</span><span class="p">,</span> <span class="s2">&quot;standalone.pdf&quot;</span><span class="p">)):</span>
+                <span class="n">subprocess</span><span class="o">.</span><span class="n">call</span><span class="p">([</span><span class="s2">&quot;cp&quot;</span><span class="p">,</span>
+                                 <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tmp</span><span class="p">,</span> <span class="s2">&quot;standalone.pdf&quot;</span><span class="p">),</span>
+                                 <span class="bp">self</span><span class="o">.</span><span class="n">_plot</span><span class="o">.</span><span class="n">output</span><span class="o">+</span><span class="s2">&quot;.pdf&quot;</span><span class="p">])</span>
+
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_index</span><span class="p">(</span><span class="n">index</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">chr</span><span class="p">(</span><span class="nb">ord</span><span class="p">(</span><span class="s1">&#39;A&#39;</span><span class="p">)</span><span class="o">+</span><span class="n">index</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3><a href="../../index.html">Home</a></h3>
+<h3><a href="genindex.html">Index</a></h3>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, François Févotte.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.8</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

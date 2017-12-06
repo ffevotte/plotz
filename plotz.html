@@ -1,0 +1,562 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>PlotZ python API &#8212; PlotZ  documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Helper functions" href="utils.html" />
+    <link rel="prev" title="Welcome to plotz’s documentation!" href="index.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-plotz">
+<span id="plotz-python-api"></span><h1>PlotZ python API<a class="headerlink" href="#module-plotz" title="Permalink to this headline">¶</a></h1>
+<p>This is the python API to PlotZ.</p>
+<p>PlotZ is a system to produce TikZ-based plots destined to be seamlessly included
+in a LaTeX document.</p>
+<dl class="class">
+<dt id="plotz.Plot">
+<em class="property">class </em><code class="descclassname">plotz.</code><code class="descname">Plot</code><span class="sig-paren">(</span><em>output</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/plotz.html#Plot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotz.Plot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Master object to create a PlotZ figure.</p>
+<p>This object is supposed to be used in a <code class="docutils literal"><span class="pre">with</span></code> statement:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">Plot</span><span class="p">(</span><span class="s2">&quot;myname&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">p</span><span class="p">:</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+
+    <span class="c1"># the plot is actually generated at the end of the block</span>
+</pre></div>
+</div>
+<dl class="method">
+<dt id="plotz.Plot.grid">
+<code class="descname">grid</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/plotz.html#Plot.grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotz.Plot.grid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Draw a grid at axes ticks</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="plotz.Plot.grid_x">
+<code class="descname">grid_x</code><em class="property"> = None</em><a class="headerlink" href="#plotz.Plot.grid_x" title="Permalink to this definition">¶</a></dt>
+<dd><p>True if vertical grid lines should be drawn</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="plotz.Plot.grid_y">
+<code class="descname">grid_y</code><em class="property"> = None</em><a class="headerlink" href="#plotz.Plot.grid_y" title="Permalink to this definition">¶</a></dt>
+<dd><p>True id horizontal grid lines should be drawn</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="plotz.Plot.hist">
+<code class="descname">hist</code><span class="sig-paren">(</span><em>data</em>, <em>col=0</em>, <em>title=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/plotz.html#Plot.hist"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotz.Plot.hist" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot a histogram</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>data</strong> – data generator (see <a class="reference internal" href="#plotz.Function" title="plotz.Function"><code class="xref py py-class docutils literal"><span class="pre">Function</span></code></a> and <a class="reference internal" href="#plotz.DataFile" title="plotz.DataFile"><code class="xref py py-class docutils literal"><span class="pre">DataFile</span></code></a>)</li>
+<li><strong>col</strong> (<em>int</em>) – column index (if data has multiple columns)</li>
+<li><strong>title</strong> (<em>str</em>) – line title</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">the drawn <code class="xref py py-class docutils literal"><span class="pre">Bar</span></code>, which can be modifed afterwards as needed.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="plotz.Plot.legend">
+<code class="descname">legend</code><em class="property"> = None</em><a class="headerlink" href="#plotz.Plot.legend" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot <a class="reference internal" href="#plotz.Legend" title="plotz.Legend"><code class="xref py py-class docutils literal"><span class="pre">Legend</span></code></a></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="plotz.Plot.output">
+<code class="descname">output</code><em class="property"> = None</em><a class="headerlink" href="#plotz.Plot.output" title="Permalink to this definition">¶</a></dt>
+<dd><p>Basename of the output figure</p>
+<dl class="docutils">
+<dt>Plotz will generate two files</dt>
+<dd><ul class="first last simple">
+<li><code class="docutils literal"><span class="pre">&lt;output&gt;.tex</span></code>: the actual PlotZ figure, which you can include in
+any LaTeX document using the <code class="docutils literal"><span class="pre">plotz</span></code> command.</li>
+<li><code class="docutils literal"><span class="pre">&lt;output&gt;.pdf</span></code>: a rendered pdf version of the figure.</li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="plotz.Plot.plot">
+<code class="descname">plot</code><span class="sig-paren">(</span><em>data</em>, <em>col=(0</em>, <em>1)</em>, <em>title=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/plotz.html#Plot.plot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotz.Plot.plot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot a curve</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>data</strong> – data generator (see <a class="reference internal" href="#plotz.Function" title="plotz.Function"><code class="xref py py-class docutils literal"><span class="pre">Function</span></code></a> and <a class="reference internal" href="#plotz.DataFile" title="plotz.DataFile"><code class="xref py py-class docutils literal"><span class="pre">DataFile</span></code></a>)</li>
+<li><strong>col</strong> (<em>tuple</em>) – tuple of column indices to plot</li>
+<li><strong>title</strong> (<em>str</em>) – line title</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">the drawn <a class="reference internal" href="#plotz.Line" title="plotz.Line"><code class="xref py py-class docutils literal"><span class="pre">Line</span></code></a>, which can be modifed afterwards as needed.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="plotz.Plot.scale">
+<code class="descname">scale</code><em class="property"> = None</em><a class="headerlink" href="#plotz.Plot.scale" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot scale.</p>
+<p>This is a convenient way to adjust the default size of the plot
+without affecting its aspect ratio. Both <a class="reference internal" href="#plotz.Plot.size_x" title="plotz.Plot.size_x"><code class="xref py py-attr docutils literal"><span class="pre">size_x</span></code></a> and
+<a class="reference internal" href="#plotz.Plot.size_y" title="plotz.Plot.size_y"><code class="xref py py-attr docutils literal"><span class="pre">size_y</span></code></a> are multiplied by <a class="reference internal" href="#plotz.Plot.scale" title="plotz.Plot.scale"><code class="xref py py-attr docutils literal"><span class="pre">scale</span></code></a> to determine the
+default plot size.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="plotz.Plot.size_x">
+<code class="descname">size_x</code><em class="property"> = None</em><a class="headerlink" href="#plotz.Plot.size_x" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot width</p>
+<p>This defines the default width of the plotting area (<em>i.e</em> excluding
+axis labels, title, legend…) It is used when producing the pdf
+output, and as a default size when including the plot in a LaTeX
+document. This size can be changed in LaTeX using
+<code class="docutils literal"><span class="pre">\plotz[width=...]{}</span></code></p>
+<p>The default aspect ratio of the plotting area is 4:3</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="plotz.Plot.size_y">
+<code class="descname">size_y</code><em class="property"> = None</em><a class="headerlink" href="#plotz.Plot.size_y" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot height (see <a class="reference internal" href="#plotz.Plot.size_x" title="plotz.Plot.size_x"><code class="xref py py-attr docutils literal"><span class="pre">size_x</span></code></a> for more details)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="plotz.Plot.style">
+<code class="descname">style</code><em class="property"> = None</em><a class="headerlink" href="#plotz.Plot.style" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot <a class="reference internal" href="#plotz.Style" title="plotz.Style"><code class="xref py py-class docutils literal"><span class="pre">Style</span></code></a></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="plotz.Plot.title">
+<code class="descname">title</code><em class="property"> = None</em><a class="headerlink" href="#plotz.Plot.title" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot title</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="plotz.Plot.x">
+<code class="descname">x</code><em class="property"> = None</em><a class="headerlink" href="#plotz.Plot.x" title="Permalink to this definition">¶</a></dt>
+<dd><p>x <a class="reference internal" href="#plotz.Axis" title="plotz.Axis"><code class="xref py py-class docutils literal"><span class="pre">Axis</span></code></a></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="plotz.Plot.y">
+<code class="descname">y</code><em class="property"> = None</em><a class="headerlink" href="#plotz.Plot.y" title="Permalink to this definition">¶</a></dt>
+<dd><p>y <a class="reference internal" href="#plotz.Axis" title="plotz.Axis"><code class="xref py py-class docutils literal"><span class="pre">Axis</span></code></a></p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="plotz.Axis">
+<em class="property">class </em><code class="descclassname">plotz.</code><code class="descname">Axis</code><span class="sig-paren">(</span><em>orientation</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/plotz.html#Axis"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotz.Axis" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot axis</p>
+<p>This object stores everything related to plot axes: range, position,
+position of ticks…</p>
+<dl class="attribute">
+<dt id="plotz.Axis.label">
+<code class="descname">label</code><em class="property"> = None</em><a class="headerlink" href="#plotz.Axis.label" title="Permalink to this definition">¶</a></dt>
+<dd><p>Axis label</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="plotz.Axis.label_rotate">
+<code class="descname">label_rotate</code><em class="property"> = None</em><a class="headerlink" href="#plotz.Axis.label_rotate" title="Permalink to this definition">¶</a></dt>
+<dd><p>True if the label should be rotated</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="plotz.Axis.label_shift">
+<code class="descname">label_shift</code><em class="property"> = None</em><a class="headerlink" href="#plotz.Axis.label_shift" title="Permalink to this definition">¶</a></dt>
+<dd><p>Space between the axis and the label</p>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="plotz.Axis.linear">
+<em class="property">static </em><code class="descname">linear</code><span class="sig-paren">(</span><em>x</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/plotz.html#Axis.linear"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotz.Axis.linear" title="Permalink to this definition">¶</a></dt>
+<dd><p>Linear scale</p>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="plotz.Axis.logarithmic">
+<em class="property">static </em><code class="descname">logarithmic</code><span class="sig-paren">(</span><em>x</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/plotz.html#Axis.logarithmic"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotz.Axis.logarithmic" title="Permalink to this definition">¶</a></dt>
+<dd><p>Logarithmic scale</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="plotz.Axis.max">
+<code class="descname">max</code><em class="property"> = None</em><a class="headerlink" href="#plotz.Axis.max" title="Permalink to this definition">¶</a></dt>
+<dd><p>Maximum axis value</p>
+<p>This value is computed automatically when plotting data, but can be
+changed manually if necessary.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="plotz.Axis.min">
+<code class="descname">min</code><em class="property"> = None</em><a class="headerlink" href="#plotz.Axis.min" title="Permalink to this definition">¶</a></dt>
+<dd><p>Minimum axis value. (see <a class="reference internal" href="#plotz.Axis.max" title="plotz.Axis.max"><code class="xref py py-attr docutils literal"><span class="pre">max</span></code></a> for details)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="plotz.Axis.pos">
+<code class="descname">pos</code><em class="property"> = None</em><a class="headerlink" href="#plotz.Axis.pos" title="Permalink to this definition">¶</a></dt>
+<dd><p>Position of the axis with respect to the other axis.</p>
+<p>By default, the position will be set to the minimum value of the
+other axis. In other words, by default, the <em>x</em> and <em>y</em> axes are
+respectively drawn on the bottom and left part of the plotting area.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="plotz.Axis.scale">
+<code class="descname">scale</code><a class="headerlink" href="#plotz.Axis.scale" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>Axis scale</em> – <a class="reference internal" href="#plotz.Axis.linear" title="plotz.Axis.linear"><code class="xref py py-class docutils literal"><span class="pre">linear</span></code></a> or <a class="reference internal" href="#plotz.Axis.logarithmic" title="plotz.Axis.logarithmic"><code class="xref py py-class docutils literal"><span class="pre">logarithmic</span></code></a></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="plotz.Axis.tick_anchor">
+<code class="descname">tick_anchor</code><em class="property"> = None</em><a class="headerlink" href="#plotz.Axis.tick_anchor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Anchor of tick labels</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="plotz.Axis.tick_format">
+<code class="descname">tick_format</code><em class="property"> = None</em><a class="headerlink" href="#plotz.Axis.tick_format" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function called to format tick labels.</p>
+<p>The default behaviour is to label tick as <span class="math">\(10^x\)</span> in
+logarithmic scale, and to pretty-print values in linear scale.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="plotz.Axis.tick_rotate">
+<code class="descname">tick_rotate</code><em class="property"> = None</em><a class="headerlink" href="#plotz.Axis.tick_rotate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Rotate tick labels by this amount (in degrees)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="plotz.Axis.ticks">
+<code class="descname">ticks</code><em class="property"> = None</em><a class="headerlink" href="#plotz.Axis.ticks" title="Permalink to this definition">¶</a></dt>
+<dd><p>List of axis ticks, in one of three forms</p>
+<ol class="arabic simple">
+<li><em>dx</em></li>
+<li>[<em>x1</em>, <em>x2</em>, <em>x3</em>, …]</li>
+<li>[(<em>x1</em>, <em>label1</em>), (<em>x2</em>, <em>label2</em>), …]</li>
+</ol>
+<p>Detailed explanation:</p>
+<ol class="arabic simple">
+<li>Tick positions range from <a class="reference internal" href="#plotz.Axis.min" title="plotz.Axis.min"><code class="xref py py-attr docutils literal"><span class="pre">min</span></code></a> to <a class="reference internal" href="#plotz.Axis.max" title="plotz.Axis.max"><code class="xref py py-attr docutils literal"><span class="pre">max</span></code></a> by
+increments of <em>dx</em>. Tick labels are computed by <a class="reference internal" href="#plotz.Axis.tick_format" title="plotz.Axis.tick_format"><code class="xref py py-attr docutils literal"><span class="pre">tick_format</span></code></a>.</li>
+<li>Ticks are placed at positions <em>x1</em>, <em>x2</em>, <em>x3</em>… Labels are
+computed by <a class="reference internal" href="#plotz.Axis.tick_format" title="plotz.Axis.tick_format"><code class="xref py py-attr docutils literal"><span class="pre">tick_format</span></code></a>.</li>
+<li>Ticks are placed at positions <em>x1</em>, <em>x2</em>, <em>x3</em>… Labels are
+defined by <em>label1</em>, <em>label2</em>, <em>label3</em>…</li>
+</ol>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="plotz.Legend">
+<em class="property">class </em><code class="descclassname">plotz.</code><code class="descname">Legend</code><a class="reference internal" href="_modules/plotz.html#Legend"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotz.Legend" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot legend</p>
+<dl class="method">
+<dt id="plotz.Legend.__call__">
+<code class="descname">__call__</code><span class="sig-paren">(</span><em>position</em>, <em>anchor=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/plotz.html#Legend.__call__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotz.Legend.__call__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Helper function to set the legend position in one call.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>position</strong> – legend <a class="reference internal" href="#plotz.Legend.position" title="plotz.Legend.position"><code class="xref py py-attr docutils literal"><span class="pre">position</span></code></a>.</li>
+<li><strong>anchor</strong> – legend <a class="reference internal" href="#plotz.Legend.anchor" title="plotz.Legend.anchor"><code class="xref py py-attr docutils literal"><span class="pre">anchor</span></code></a>.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="plotz.Legend.anchor">
+<code class="descname">anchor</code><em class="property"> = None</em><a class="headerlink" href="#plotz.Legend.anchor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Anchor relatively to which the legend is positioned.</p>
+<p>This defines which part of the legend is positioned where defined by
+<a class="reference internal" href="#plotz.Legend.position" title="plotz.Legend.position"><code class="xref py py-attr docutils literal"><span class="pre">position</span></code></a>. This should be a string denoting a TikZ anchor
+(such as “north east”, meaning that the top left corner of the legend
+is to be positioned where defined by <a class="reference internal" href="#plotz.Legend.position" title="plotz.Legend.position"><code class="xref py py-attr docutils literal"><span class="pre">position</span></code></a>).</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="plotz.Legend.margin">
+<code class="descname">margin</code><em class="property"> = None</em><a class="headerlink" href="#plotz.Legend.margin" title="Permalink to this definition">¶</a></dt>
+<dd><p>Margin around the anchor (in em).</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="plotz.Legend.position">
+<code class="descname">position</code><em class="property"> = None</em><a class="headerlink" href="#plotz.Legend.position" title="Permalink to this definition">¶</a></dt>
+<dd><p>Position of the legend in the plot.</p>
+<p>If this is a string (such as “north east”), it is taken to be a
+TikZ anchor in the plotting area.</p>
+<p>Otherwise, <a class="reference internal" href="#plotz.Legend.position" title="plotz.Legend.position"><code class="xref py py-attr docutils literal"><span class="pre">position</span></code></a> should be a tuple of coordinates.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="plotz.Legend.show">
+<code class="descname">show</code><em class="property"> = None</em><a class="headerlink" href="#plotz.Legend.show" title="Permalink to this definition">¶</a></dt>
+<dd><p>True if the legend should be drawn on the plot</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="plotz.Style">
+<em class="property">class </em><code class="descclassname">plotz.</code><code class="descname">Style</code><a class="reference internal" href="_modules/plotz.html#Style"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotz.Style" title="Permalink to this definition">¶</a></dt>
+<dd><p>This object is responsible for storing all settings related to the styling
+of the plot: colors, line patterns, markers…</p>
+<dl class="attribute">
+<dt id="plotz.Style.color">
+<code class="descname">color</code><em class="property"> = None</em><a class="headerlink" href="#plotz.Style.color" title="Permalink to this definition">¶</a></dt>
+<dd><p>List of colors used in the plot. This might be more easily set using
+<a class="reference internal" href="#plotz.Style.colormap" title="plotz.Style.colormap"><code class="xref py py-func docutils literal"><span class="pre">colormap()</span></code></a></p>
+</dd></dl>
+
+<dl class="method">
+<dt id="plotz.Style.colormap">
+<code class="descname">colormap</code><span class="sig-paren">(</span><em>name=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/plotz.html#Style.colormap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotz.Style.colormap" title="Permalink to this definition">¶</a></dt>
+<dd><p>Setup a colormap.</p>
+<p>Predefined colormaps come from colorbrewer2.org:</p>
+<dl class="docutils">
+<dt><em>default</em></dt>
+<dd>8-color map with qualitatively varying colors (qualitative, set1)</dd>
+<dt><em>dark</em></dt>
+<dd>8-color map with qualitatively varying colors in darker tones (qualitative, dark2)</dd>
+<dt><em>paired</em></dt>
+<dd>8-color map with paired colors (qualitative, paired)</dd>
+<dt><em>spectralN</em> (for N=4..8)</dt>
+<dd>N-color map with diverging colors (diverging, spectral)</dd>
+<dt><em>monochrome</em></dt>
+<dd>map with all colors set to black</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="plotz.Style.dashed">
+<code class="descname">dashed</code><span class="sig-paren">(</span><em>activate=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/plotz.html#Style.dashed"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotz.Style.dashed" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the plot up to use dashed patterns for lines.</p>
+<p>This is useful in combination with the “monochrome”
+<a class="reference internal" href="#plotz.Style.colormap" title="plotz.Style.colormap"><code class="xref py py-meth docutils literal"><span class="pre">colormap()</span></code></a></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="plotz.Style.marker">
+<code class="descname">marker</code><em class="property"> = None</em><a class="headerlink" href="#plotz.Style.marker" title="Permalink to this definition">¶</a></dt>
+<dd><p>List of markers used in the plot.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="plotz.Style.pattern">
+<code class="descname">pattern</code><em class="property"> = None</em><a class="headerlink" href="#plotz.Style.pattern" title="Permalink to this definition">¶</a></dt>
+<dd><p>List of dash/dot patterns used in the plot.</p>
+<p>By default, all lines are solid.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="plotz.Style.thickness">
+<code class="descname">thickness</code><em class="property"> = None</em><a class="headerlink" href="#plotz.Style.thickness" title="Permalink to this definition">¶</a></dt>
+<dd><p>List of TikZ line thicknesses used in the plot</p>
+<p>By default, all lines are <em>very thick</em>.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="plotz.Line">
+<em class="property">class </em><code class="descclassname">plotz.</code><code class="descname">Line</code><span class="sig-paren">(</span><em>plot</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/plotz.html#Line"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotz.Line" title="Permalink to this definition">¶</a></dt>
+<dd><p>A line in the plot.</p>
+<p>Plotted lines are created by <a class="reference internal" href="#plotz.Plot.plot" title="plotz.Plot.plot"><code class="xref py py-meth docutils literal"><span class="pre">Plot.plot()</span></code></a>, but they can be altered
+afterwards.</p>
+<dl class="attribute">
+<dt id="plotz.Line.color">
+<code class="descname">color</code><em class="property"> = None</em><a class="headerlink" href="#plotz.Line.color" title="Permalink to this definition">¶</a></dt>
+<dd><p>Index of the line color in the <a class="reference internal" href="#plotz.Style.color" title="plotz.Style.color"><code class="xref py py-attr docutils literal"><span class="pre">Style.color</span></code></a> list.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="plotz.Line.line">
+<code class="descname">line</code><em class="property"> = None</em><a class="headerlink" href="#plotz.Line.line" title="Permalink to this definition">¶</a></dt>
+<dd><p>True if the line should be drawn.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="plotz.Line.markers">
+<code class="descname">markers</code><em class="property"> = None</em><a class="headerlink" href="#plotz.Line.markers" title="Permalink to this definition">¶</a></dt>
+<dd><p>Index of the point markers in the <a class="reference internal" href="#plotz.Style.marker" title="plotz.Style.marker"><code class="xref py py-attr docutils literal"><span class="pre">Style.marker</span></code></a> list.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="plotz.Line.markers_filter">
+<code class="descname">markers_filter</code><em class="property"> = None</em><a class="headerlink" href="#plotz.Line.markers_filter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Filter determining when markers actually get drawn.</p>
+<p>See <a class="reference internal" href="utils.html#plotz.utils.Markers" title="plotz.utils.Markers"><code class="xref py py-class docutils literal"><span class="pre">plotz.utils.Markers</span></code></a> for a list of built-in filters.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="plotz.Line.pattern">
+<code class="descname">pattern</code><em class="property"> = None</em><a class="headerlink" href="#plotz.Line.pattern" title="Permalink to this definition">¶</a></dt>
+<dd><p>Index of the line dash/dot pattern in the <a class="reference internal" href="#plotz.Style.pattern" title="plotz.Style.pattern"><code class="xref py py-attr docutils literal"><span class="pre">Style.pattern</span></code></a>
+list.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="plotz.Line.style">
+<code class="descname">style</code><span class="sig-paren">(</span><em>properties</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/plotz.html#Line.style"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotz.Line.style" title="Permalink to this definition">¶</a></dt>
+<dd><p>Style a newly-created line</p>
+<p>Args:</p>
+<dl class="docutils">
+<dt>dict properties: a dictionary containing style attributes (see</dt>
+<dd>py:class:<cite>Line</cite> for a list of all supported attributes). As a special
+case, if <cite>markers</cite> is set to True, it will be replaced by the next
+available marker index.</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="plotz.Line.thickness">
+<code class="descname">thickness</code><em class="property"> = None</em><a class="headerlink" href="#plotz.Line.thickness" title="Permalink to this definition">¶</a></dt>
+<dd><p>Index of the line thickness in the <a class="reference internal" href="#plotz.Style.thickness" title="plotz.Style.thickness"><code class="xref py py-attr docutils literal"><span class="pre">Style.thickness</span></code></a> list.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="plotz.Line.title">
+<code class="descname">title</code><em class="property"> = None</em><a class="headerlink" href="#plotz.Line.title" title="Permalink to this definition">¶</a></dt>
+<dd><p>Title of the line.</p>
+<p>If set, this is what goes in the plot legend.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="plotz.Function">
+<em class="property">class </em><code class="descclassname">plotz.</code><code class="descname">Function</code><span class="sig-paren">(</span><em>fun</em>, <em>samples=100</em>, <em>range=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/plotz.html#Function"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotz.Function" title="Permalink to this definition">¶</a></dt>
+<dd><p>Data generator for python functions</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>fun</strong> (<em>function</em>) – python function</li>
+<li><strong>samples</strong> (<em>int</em>) – number of sampled points</li>
+<li><strong>range</strong> (<em>tuple</em>) – range of the data</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="plotz.DataFile">
+<code class="descclassname">plotz.</code><code class="descname">DataFile</code><span class="sig-paren">(</span><em>filename</em>, <em>sep=&lt;_sre.SRE_Pattern object&gt;</em>, <em>comment='#'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/plotz.html#DataFile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotz.DataFile" title="Permalink to this definition">¶</a></dt>
+<dd><p>Data generator for an ASCII datafile</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>filename</strong> (<em>str</em>) – path to the data file</li>
+<li><strong>sep</strong> (<em>str</em><em> or </em><em>re</em>) – delimiter for columns</li>
+<li><strong>comment</strong> (<em>str</em>) – string indicating the beginning of a comment line</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3><a href="index.html">Home</a></h3>
+<h3><a href="genindex.html">Index</a></h3>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, François Févotte.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.8</a>
+      
+      |
+      <a href="_sources/plotz.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
