@@ -1,3 +1,7 @@
+include("latexOutput.jl")
+include("tikzGenerator.jl")
+
+
 macro chainable(expr)
     function arg_symbol(e::Expr)
         if e.head == :parameters
@@ -16,13 +20,14 @@ macro chainable(expr)
     call = deepcopy(defun.args[1])
     prototype = call.args
 
+    # -> get the first argument
     if typeof(prototype[2]) == Expr && prototype[2].head == :parameters
         ifa = 3
     else
         ifa = 2
     end
-
     first_arg = prototype[ifa]
+
     # -> remove type specifications
     map!(arg_symbol, prototype, prototype)
 
@@ -60,7 +65,7 @@ mutable struct Line
     end
 end
 
-@chainable function style(line :: Line; kwargs...)
+@chainable function style!(line :: Line; kwargs...)
     for (name, val) in kwargs
         setfield!(line, name,
                   convert(typeof(getfield(line, name)), val))
@@ -88,7 +93,7 @@ function Plot(fun, output::String)
 end
 
 
-@chainable function plot{T}(p::Plot, data::Array{T,2})
+@chainable function plot!{T}(p::Plot, data::Array{T,2})
     l = Line()
     push!(l.points, Vector{Tuple{Float32, Float32}}(0))
     j = 1
@@ -101,8 +106,32 @@ end
     return l
 end
 
-function render(p::Plot, output::String)
-    println(p)
+function render(p::Plot, outputName::String)
+    gen = TikzGenerator()
+    for data_series in p.data
+        render(gen, data_series)
+    end
+    output(gen.latex)
+end
+
+function render(gen::TikzGenerator, line::Line)
+    for subline in line.points
+        append!(gen.latex, "/lines", raw"\draw")
+
+        # First data point
+        iter = start(subline)
+        (x, y), iter = next(subline, iter)
+        append!(gen.latex, "/lines",
+                "  ($x,$y)")
+
+        # Other data points
+        while !done(subline, iter)
+            (x, y), iter = next(subline, iter)
+            append!(gen.latex, "/lines",
+                    "--($x,$y)")
+        end
+        append!(gen.latex, "/lines", ";")
+    end
 end
 
 N = 10
@@ -115,5 +144,6 @@ end
 
 Plot("essai") do p
     p.title = "My first PlotZ plot"
-    p |> plot(data) |> style(color=1)
+    p |> plot!(data) |> style!(color=1)
+    true
 end
