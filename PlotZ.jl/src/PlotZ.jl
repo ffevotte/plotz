@@ -1,6 +1,8 @@
 include("latexOutput.jl")
 include("tikzGenerator.jl")
 
+include("dataSources.jl")
+include("axis.jl")
 
 macro chainable(expr)
     function arg_symbol(e::Expr)
@@ -46,7 +48,6 @@ macro chainable(expr)
 end
 
 
-
 mutable struct Line
     title     :: Nullable{String}
     line      :: Bool
@@ -76,11 +77,17 @@ end
 
 mutable struct Plot
     title :: Nullable{String}
-    data :: Vector{Line}
+
+    x     :: Axis
+    y     :: Axis
+
+    data  :: Vector{Line}
 
     Plot() = begin
         p = new()
         p.title = Nullable{String}()
+        p.x = Axis(1)
+        p.y = Axis(2)
         p.data = []
         return p
     end

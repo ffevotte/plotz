@@ -34,16 +34,6 @@ function Base.done(f::Function, cstate)
     return done(c, state)
 end
 
-f = Function(sin, samples=10)
-
-if isnull(f.range)
-    f.range = (0, pi)
-end
-
-for r in f
-    println(r)
-end
-
 
 
 
@@ -67,8 +57,4 @@ function DataFile(filename::String; sep=r"\s+", comment=r"^\s*#")
         end
     end
     return Channel(_it)
-end
-
-for r in DataFile("../../examples/01-dataSources/02-file/mydata.dat")
-    println(r)
 end
