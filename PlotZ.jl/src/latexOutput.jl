@@ -1,6 +1,6 @@
 mutable struct LatexOutput
     lines    :: Vector{Any}
-    index    :: Dict{String, Int}
+    index    :: Dict{String, LatexOutput}
     prefix   :: Vector{String}
     suffix   :: Vector{String}
 
@@ -11,7 +11,7 @@ end
 
 function LatexOutput(name :: String,
                      prefix=Nullable{String}(),
-                     suffix=Nummable{String}())
+                     suffix=Nullable{String}())
     pref = ["", string("% ", name, " ")]
     if ! isnull(prefix)
         push!(pref, unsafe_get(prefix))
@@ -34,7 +34,8 @@ function splitPath(path :: String)
     end
 end
 
-function insert!(l :: LatexOutput, path :: String, prefix=Nullable{String}(), suffix=Nullable{String}())
+@chainable function insert!(l :: LatexOutput, path :: String,
+                            prefix=Nullable{String}(), suffix=Nullable{String}())
     insert!(l, splitPath(path), prefix, suffix)
 end
 
@@ -43,11 +44,13 @@ function insert!{T}(l :: LatexOutput, path :: Vector{T}, prefix, suffix)
     rest  = path[2:end]
 
     if length(path) == 1
-        push!(l.lines, LatexOutput(convert(String, first), prefix, suffix))
-        l.index[first] = length(l.lines)
+        l.index[first] = LatexOutput(convert(String, first), prefix, suffix)
+        push!(l.lines, l.index[first])
     else
-        insert!(l.lines[l.index[first]], rest, prefix, suffix)
+        insert!(l.index[first], rest, prefix, suffix)
     end
+
+    return l
 end
 
 function append!(l :: LatexOutput, path :: String, latex)
@@ -60,7 +63,7 @@ function append!{T}(l :: LatexOutput, path :: Vector{T}, latex)
     else
         first = path[1]
         rest = path[2:end]
-        nested = l.lines[l.index[first]]
+        nested = l.index[first]
         append!(nested, rest, latex)
     end
 end

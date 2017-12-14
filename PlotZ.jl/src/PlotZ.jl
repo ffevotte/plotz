@@ -1,52 +1,9 @@
+include("utils.jl")
 include("latexOutput.jl")
 include("tikzGenerator.jl")
 
 include("dataSources.jl")
 include("axis.jl")
-
-macro chainable(expr)
-    function arg_symbol(e::Expr)
-        if e.head == :parameters
-            return e
-        end
-        return e.args[1]
-    end
-
-    function arg_symbol(e::Symbol)
-        return e
-    end
-
-    defun = deepcopy(expr)
-
-    # Build the funcall
-    call = deepcopy(defun.args[1])
-    prototype = call.args
-
-    # -> get the first argument
-    if typeof(prototype[2]) == Expr && prototype[2].head == :parameters
-        ifa = 3
-    else
-        ifa = 2
-    end
-    first_arg = prototype[ifa]
-
-    # -> remove type specifications
-    map!(arg_symbol, prototype, prototype)
-
-    # Build the new defun
-    # -> remove the first argument
-    splice!(defun.args[1].args, ifa, [])
-    # -> replace the body
-    defun.args[2] = quote
-        $first_arg -> $call
-    end
-
-    quote
-        $(esc(defun))
-        $(esc(expr))
-    end
-end
-
 
 mutable struct Line
     title     :: Nullable{String}
@@ -100,13 +57,13 @@ function Plot(fun, output::String)
 end
 
 
-@chainable function plot!{T}(p::Plot, data::Array{T,2})
+@chainable function plot!(p::Plot, data)
     l = Line()
     push!(l.points, Vector{Tuple{Float32, Float32}}(0))
     j = 1
 
-    for i in 1:size(data, 1)
-        push!(l.points[j], (data[i,1], data[i,2]))
+    for r in rows(data)
+        push!(l.points[j], (r[1], r[2]))
     end
 
     push!(p.data, l)
