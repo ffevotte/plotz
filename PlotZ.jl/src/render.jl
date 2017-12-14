@@ -38,6 +38,14 @@ function index(i)
     'A' + i-1
 end
 
+
+macro rawsprintf(fmt, val...)
+    fmt = eval(fmt)
+    quote
+        @sprintf $fmt $(esc(val...))
+    end
+end
+
 function render(p::Plot, outputName::String)
     gen = TikzGenerator()
     render!(gen, p.style)
@@ -45,7 +53,10 @@ function render(p::Plot, outputName::String)
     for data_series in p.data
         render!(gen, data_series)
     end
-    output(gen.latex)
+
+    append!(gen.latex, "/scale", @rawsprintf(raw"\def\plotz@scalex{%.6f}", 5))
+    append!(gen.latex, "/scale", @rawsprintf(raw"\def\plotz@scaley{%.6f}", 5))
+    compile(gen, outputName)
 end
 
 macro define_style(style, path, definition)
@@ -86,5 +97,56 @@ function render!(gen::TikzGenerator, line::Line)
                     "--($x,$y)")
         end
         append!(gen.latex, "/lines", ";")
+    end
+end
+
+function compile(gen::TikzGenerator, outputName::String)
+    mktempdir() do tmpdir
+        cd(tmpdir) do
+            open("standalone.tex", "w") do f
+                write(f, join([
+                    raw"\errorstopmode",
+                    raw"\documentclass{standalone}",
+                    raw"\usepackage{plotz}",
+                    raw"\begin{document}",
+                    raw"\plotz{plotz}",
+                    raw"\end{document}",
+                ], "%\n"))
+            end
+
+            open("plotz.tex", "w") do f
+                output(f, gen.latex)
+            end
+        end
+
+        Base.Filesystem.cp(joinpath(tmpdir, "plotz.tex"),
+                           string(outputName, ".tex"),
+                           remove_destination=true)
+
+        cd(tmpdir) do
+            (stdout, stdin, pdflatex) = readandwrite(`pdflatex -file-line-error standalone.tex`)
+            close(stdin)
+
+            context = 0
+            error = r"^.+:\d+: "
+            for line in eachline(stdout)
+                if match(error, line) != nothing
+                    context = max(context, 3)
+                end
+
+                if context > 0
+                    println(line)
+                    context -= 1
+                end
+            end
+        end
+
+        try
+            Base.Filesystem.cp(joinpath(tmpdir, "standalone.pdf"),
+                               string(outputName, ".pdf"),
+                               remove_destination=true)
+        catch
+            error("No output PDF file produced")
+        end
     end
 end

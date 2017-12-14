@@ -68,18 +68,18 @@ function append!{T}(l :: LatexOutput, path :: Vector{T}, latex)
     end
 end
 
-function output(l :: LatexOutput, indent="")
-    output(l.prefix, indent)
-    output(l.lines, string(indent, "  "))
-    output(l.suffix, indent)
+function output(f, l::LatexOutput, indent::String="")
+    output(f, l.prefix, indent)
+    output(f, l.lines, string(indent, "  "))
+    output(f, l.suffix, indent)
 end
 
-function output(l :: String, indent)
-    println(indent, l, "%")
+function output(f, l::String, indent::String)
+    write(f, indent, l, "%\n")
 end
 
-function output{T}(l :: Array{T}, indent)
+function output{T}(f, l::Array{T}, indent::String)
     for line in l
-        output(line, indent)
+        output(f, line, indent)
     end
 end
