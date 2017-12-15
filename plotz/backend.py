@@ -518,11 +518,11 @@ class TikzGenerator(object):
             pdflatex.stdin.close()
 
             context = 0
-            error = re.compile(r"^.+:\d+: ")
+            error = re.compile(r"^.+:\d+: |^! LaTeX Error:")
             for line in pdflatex.stdout:
                 line = line.decode()
                 if error.match(line):
-                    context = max(context, 3)
+                    context = max(context, 5)
                 if context > 0:
                     sys.stderr.write(line)
                     context -= 1

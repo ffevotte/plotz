@@ -128,10 +128,10 @@ function compile(gen::TikzGenerator, outputName::String)
             close(stdin)
 
             context = 0
-            error = r"^.+:\d+: "
+            error = r"^.+:\d+: |^! LaTeX Error:"
             for line in eachline(stdout)
                 if match(error, line) != nothing
-                    context = max(context, 3)
+                    context = max(context, 5)
                 end
 
                 if context > 0
