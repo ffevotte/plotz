@@ -17,4 +17,5 @@
 # this program.  If not, see <http://www.gnu.org/licenses/>.
 
 export PYTHONPATH=${PYTHONPATH}:"$(dirname $(readlink -f ${BASH_SOURCE[0]}))"
+export JULIA_LOAD_PATH=${JULIA_LOAD_PATH}:"$(dirname $(readlink -f ${BASH_SOURCE[0]}))/PlotZ.jl/src"
 export TEXINPUTS=${TEXINPUTS}:"$(dirname $(readlink -f ${BASH_SOURCE[0]}))"
