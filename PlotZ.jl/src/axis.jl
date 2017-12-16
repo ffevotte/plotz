@@ -2,6 +2,8 @@ linear(x :: Number) = convert(Float64, x)
 logarithmic(x :: Number) = exp(x)
 
 mutable struct Axis
+    _setup       :: Bool
+
     orientation  :: Int
     scale
 
@@ -21,6 +23,7 @@ mutable struct Axis
 
     Axis(orientation) = begin
         a = new()
+        a._setup = true
         a.orientation = orientation
         a.scale = linear
         a.label = Nullable{String}()

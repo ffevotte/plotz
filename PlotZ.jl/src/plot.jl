@@ -31,6 +31,10 @@ mutable struct Plot
     x     :: Axis
     y     :: Axis
 
+    size_x :: Float32
+    size_y :: Float32
+    scale  :: Float32
+
     style :: Style
 
     data  :: Vector{Line}
@@ -38,8 +42,14 @@ mutable struct Plot
     Plot() = begin
         p = new()
         p.title = Nullable{String}()
+
         p.x = Axis(1)
         p.y = Axis(2)
+
+        p.size_x = 266.66
+        p.size_y = 200
+        p.scale = 1
+
         p.data = []
         p.style = Style()
         return p
@@ -55,14 +65,27 @@ function Plot(fun, output::String)
     render(p, output)
 end
 
+@chainable function plot!(p::Plot, data; title=nothing)
+    p.x._setup = false
+    p.y._setup = false
 
-@chainable function plot!(p::Plot, data)
     l = Line()
+    l.title = title
+
     push!(l.points, Vector{Tuple{Float32, Float32}}(0))
     j = 1
 
     for r in rows(data)
+        x = p.x.scale(r[1])
+        y = p.x.scale(r[2])
+
         push!(l.points[j], (r[1], r[2]))
+
+        p.x.min = min(x, p.x.min)
+        p.x.max = max(x, p.x.max)
+
+        p.y.min = min(y, p.y.min)
+        p.y.max = max(y, p.y.max)
     end
 
     push!(p.data, l)

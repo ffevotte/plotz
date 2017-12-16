@@ -42,7 +42,7 @@ end
 macro rawsprintf(fmt, val...)
     fmt = eval(fmt)
     quote
-        @sprintf $fmt $(esc(val...))
+        @sprintf $fmt $(map(esc, val)...)
     end
 end
 
@@ -54,8 +54,8 @@ function render(p::Plot, outputName::String)
         render!(gen, data_series)
     end
 
-    append!(gen.latex, "/scale", @rawsprintf(raw"\def\plotz@scalex{%.6f}", 5))
-    append!(gen.latex, "/scale", @rawsprintf(raw"\def\plotz@scaley{%.6f}", 5))
+    render_title!(gen, p)
+    render_size!(gen, p)
     compile(gen, outputName)
 end
 
@@ -99,6 +99,30 @@ function render!(gen::TikzGenerator, line::Line)
         append!(gen.latex, "/lines", ";")
     end
 end
+
+function render_title!(gen::TikzGenerator, plot::Plot)
+    if plot.title != nothing
+        append!(gen.latex, "/background/legend",
+                raw"\coordinate(title)at(current bounding box.north);")
+
+        append!(gen.latex, "/foreground",
+                @rawsprintf(raw"\draw(title)++(0,1em)node[anchor=south]{%s};",
+                            get(plot.title)))
+    end
+end
+
+function render_size!(gen::TikzGenerator, plot::Plot)
+    append!(gen.latex, "/background/bbox",
+            @rawsprintf(raw"\fill[white](%f,%f)rectangle(%f,%f);",
+                        plot.x.min, plot.y.min,
+                        plot.x.max, plot.y.max))
+
+    append!(gen.latex, "/scale", @rawsprintf(raw"\def\plotz@scalex{%.6f}",
+                                             plot.size_x*plot.scale / (plot.x.max-plot.x.min)))
+    append!(gen.latex, "/scale", @rawsprintf(raw"\def\plotz@scaley{%.6f}",
+                                             plot.size_y*plot.scale / (plot.y.max-plot.y.min)))
+end
+
 
 function compile(gen::TikzGenerator, outputName::String)
     mktempdir() do tmpdir
