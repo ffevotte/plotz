@@ -3,8 +3,8 @@ logarithmic(x :: Number) = exp(x)
 
 mutable struct Axis
     _setup       :: Bool
+    _orientation :: Int
 
-    orientation  :: Int
     scale
 
     label        :: Nullable{String}
@@ -25,11 +25,13 @@ mutable struct Axis
     Axis(orientation) = begin
         a = new()
         a._setup = true
-        a.orientation = orientation
+        a._orientation = orientation
         a.scale = linear
+
         a.label = Nullable{String}()
         a.label_rotate = false
-        a.label_shift = orientation==1 ? 2 : 3
+        a.label_shift = (orientation==1) ? 2 : 3
+
         a.min = Inf
         a.max = -Inf
         a.pos = nothing
@@ -37,7 +39,7 @@ mutable struct Axis
         a.ticks = nothing
         a.tick_format = x -> begin
             if a.scale == logarithmic
-                string(raw"$", "10^{$x}", raw"$")
+                raw"$" * "10^{$x}" * raw"$"
             else
                 @sprintf "%.2f" x
             end
@@ -54,7 +56,7 @@ function update!(a::Axis)
     update_ticks!(a)
 
     if a.tick_anchor == nothing
-        a.tick_anchor = a.orientation==1 ? "north" : "east"
+        a.tick_anchor = a._orientation==1 ? "north" : "east"
     end
 end
 

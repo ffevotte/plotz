@@ -12,7 +12,7 @@ end
 function LatexOutput(name :: String,
                      prefix=Nullable{String}(),
                      suffix=Nullable{String}())
-    pref = ["", string("% ", name, " ")]
+    pref = ["", "% $name "]
     if ! isnull(prefix)
         push!(pref, unsafe_get(prefix))
     end
@@ -70,7 +70,7 @@ end
 
 function output(f, l::LatexOutput, indent::String="")
     output(f, l.prefix, indent)
-    output(f, l.lines, string(indent, "  "))
+    output(f, l.lines,  "$indent  ")
     output(f, l.suffix, indent)
 end
 

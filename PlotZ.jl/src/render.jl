@@ -105,15 +105,15 @@ end
 function render!(gen::TikzGenerator, axis::Axis)
     tick_options = @sprintf "rotate=%f,anchor=%s" axis.tick_rotate axis.tick_anchor
 
-    if axis.orientation == 1
+    if axis._orientation == 1
         label_options = "anchor=north"
         if axis.label_rotate
-            label_options = string(label_options, ",rotate=90,anchor=east,inner sep=1em")
+            label_options *= ",rotate=90,anchor=east,inner sep=1em"
         end
     else
         label_options = "anchor=east"
         if axis.label_rotate
-            label_options = string(label_options, ",rotate=90,anchor=south,inner sep=1em")
+            label_options *= ",rotate=90,anchor=south,inner sep=1em"
         end
     end
 
@@ -126,7 +126,7 @@ function render!(gen::TikzGenerator, axis::Axis)
             y = @sprintf "%.15f" y
         end
 
-        if axis.orientation == 1
+        if axis._orientation == 1
             return @sprintf "%s,%s" x y
         end
 
@@ -142,11 +142,10 @@ function render!(gen::TikzGenerator, axis::Axis)
     # Label
     if !isnull(axis.label)
         append!(gen.latex,"/foreground/axes",
-                string(
-                    @rawsprintf(raw"\draw(%s)++(%s)",
-                                _coord(0.5*(axis.min+axis.max), axis.pos),
-                                _coord(0, @sprintf "-%fem" axis.label_shift)),
-                    @sprintf("node[%s]{%s};", label_options, get(axis.label))))
+                @rawsprintf(raw"\draw(%s)++(%s)",
+                            _coord(0.5*(axis.min+axis.max), axis.pos),
+                            _coord(0, @sprintf "-%fem" axis.label_shift)) *
+                @sprintf("node[%s]{%s};", label_options, get(axis.label)))
     end
 
     # Ticks
@@ -205,7 +204,7 @@ function compile(gen::TikzGenerator, outputName::String)
         end
 
         Base.Filesystem.cp(joinpath(tmpdir, "plotz.tex"),
-                           string(outputName, ".tex"),
+                           outputName * ".tex",
                            remove_destination=true)
 
         cd(tmpdir) do
@@ -228,7 +227,7 @@ function compile(gen::TikzGenerator, outputName::String)
 
         try
             Base.Filesystem.cp(joinpath(tmpdir, "standalone.pdf"),
-                               string(outputName, ".pdf"),
+                               outputName * ".pdf",
                                remove_destination=true)
         catch
             error("No output PDF file produced")

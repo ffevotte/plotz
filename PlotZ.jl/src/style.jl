@@ -58,8 +58,8 @@ function dashed!(style::Style, activate=true)
                          raw"dashed",
                          raw"dash pattern=on 3pt off 2pt on \pgflinewidth off 2pt",
                          raw"loosely dotted",
-                         string(raw"dash pattern=on 4pt off 2pt on \pgflinewidth off ",
-                                raw"2pt on \pgflinewidth off 2pt on \pgflinewidth off 2pt")]
+                         (raw"dash pattern=on 4pt off 2pt on \pgflinewidth off " *
+                          raw"2pt on \pgflinewidth off 2pt on \pgflinewidth off 2pt")]
     else
         style.pattern = ["solid" for i in 1:8]
     end
