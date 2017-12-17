@@ -49,13 +49,15 @@ end
 function render(p::Plot, outputName::String)
     gen = TikzGenerator()
     render!(gen, p.style)
+    render_size!(gen, p)
+    render!(gen, p.x)
+    render!(gen, p.y)
 
     for data_series in p.data
         render!(gen, data_series)
     end
 
     render_title!(gen, p)
-    render_size!(gen, p)
     compile(gen, outputName)
 end
 
@@ -97,6 +99,65 @@ function render!(gen::TikzGenerator, line::Line)
                     "--($x,$y)")
         end
         append!(gen.latex, "/lines", ";")
+    end
+end
+
+function render!(gen::TikzGenerator, axis::Axis)
+    tick_options = @sprintf "rotate=%f,anchor=%s" axis.tick_rotate axis.tick_anchor
+
+    if axis.orientation == 1
+        label_options = "anchor=north"
+        if axis.label_rotate
+            label_options = string(label_options, ",rotate=90,anchor=east,inner sep=1em")
+        end
+    else
+        label_options = "anchor=east"
+        if axis.label_rotate
+            label_options = string(label_options, ",rotate=90,anchor=south,inner sep=1em")
+        end
+    end
+
+    # Coordinates rotation
+    function _coord(x, y)
+        if typeof(x) <: Number
+            x = @sprintf "%.15f" x
+        end
+        if typeof(y) <: Number
+            y = @sprintf "%.15f" y
+        end
+
+        if axis.orientation == 1
+            return @sprintf "%s,%s" x y
+        end
+
+        return @sprintf "%s,%s" y x
+    end
+
+    # Axis
+    append!(gen.latex, "/foreground/axes",
+            @rawsprintf(raw"\draw(%s)--(%s);",
+                        _coord(axis.min, axis.pos),
+                        _coord(axis.max, axis.pos)))
+
+    # Label
+    if !isnull(axis.label)
+        append!(gen.latex,"/foreground/axes",
+                string(
+                    @rawsprintf(raw"\draw(%s)++(%s)",
+                                _coord(0.5*(axis.min+axis.max), axis.pos),
+                                _coord(0, @sprintf "-%fem" axis.label_shift)),
+                    @sprintf("node[%s]{%s};", label_options, get(axis.label))))
+    end
+
+    # Ticks
+    for (x, label) in axis.ticks
+        append!(gen.latex, "/foreground/axes", [
+            @rawsprintf(raw"\draw(%s)++(%s)--++(%s)",
+                        _coord(x, axis.pos),
+                        _coord(0, "0.5em"),
+                        _coord(0, "-1em")),
+            @rawsprintf(raw"   node[%s]{%s};", tick_options, label)
+        ])
     end
 end
 

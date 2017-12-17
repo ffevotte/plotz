@@ -62,6 +62,16 @@ dashed!(plot, activate=true) = dashed!(plot.style, activate)
 function Plot(fun, output::String)
     p = Plot()
     fun(p)
+
+    update!(p.x)
+    update!(p.y)
+    if p.x.pos == nothing
+        p.x.pos = p.y.min
+    end
+    if p.y.pos == nothing
+        p.y.pos = p.x.min
+    end
+
     render(p, output)
 end
 
