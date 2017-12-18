@@ -1,3 +1,4 @@
+__precompile__()
 module PlotZ
 
 export Plot, DataFile

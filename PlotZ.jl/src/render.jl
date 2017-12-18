@@ -34,7 +34,7 @@ mutable struct TikzGenerator
 end
 
 
-function index(i)
+function index(i::Int)
     'A' + i-1
 end
 
@@ -201,6 +201,10 @@ function compile(gen::TikzGenerator, outputName::String)
             open("plotz.tex", "w") do f
                 output(f, gen.latex)
             end
+        end
+
+        if outputName == ""
+            return
         end
 
         Base.Filesystem.cp(joinpath(tmpdir, "plotz.tex"),
