@@ -17,11 +17,11 @@ mutable struct TikzGenerator
                    |> insert!("/background/bbox")
                    |> insert!("/background/grid")
                    |> insert!("/background/legend")
+                   |> insert!("/background/axes")
                    |> insert!("/lines",
                               raw"\def\plotz@lines{", "}")
                    |> insert!("/foreground",
                               raw"\def\plotz@foreground{", "}")
-                   |> insert!("/foreground/axes")
                    |> insert!("/foreground/legend")
                    |> insert!("/legend",
                               raw"\def\plotz@legend{", "}")
@@ -36,14 +36,6 @@ end
 
 function index(i::Int)
     'A' + i-1
-end
-
-
-macro rawsprintf(fmt, val...)
-    fmt = eval(fmt)
-    quote
-        @sprintf $fmt $(map(esc, val)...)
-    end
 end
 
 function render(p::Plot, outputName::String)
@@ -79,24 +71,56 @@ function render!(gen::TikzGenerator, style::Style)
     @define_style(style.pattern, "/header/patterns",
                   raw"\tikzstyle{pattern%s}=[%s]")
     @define_style(style.thickness, "/header/thickness",
-                  raw"\tikzstyle{thickness%s}=[%s]")
+                  raw"\tikzstyle{thick%s}=[%s]")
+end
+
+
+struct LineOptions
+    style  :: String
+    draw   :: String
+    marker :: String
+
+    LineOptions(line::Line) = begin
+        style = [@sprintf "color%s" index(line.color)]
+        if line.line
+            push!(style, @sprintf "pattern%s" index(line.pattern))
+            push!(style, @sprintf "thick%s" index(line.thickness))
+        end
+
+        draw = line.line ? "--" : "  "
+
+        marker = isnull(line.markers) ? "" : @rawsprintf(raw"node{\marker%s}", index(get(line.markers)))
+
+        new(join(style, ","), draw, marker)
+    end
 end
 
 function render!(gen::TikzGenerator, line::Line)
+    options = LineOptions(line)
+
     for subline in line.points
-        append!(gen.latex, "/lines", raw"\draw")
+        append!(gen.latex, "/lines",
+                @rawsprintf raw"\draw[%s]" options.style)
 
         # First data point
         iter = start(subline)
         (x, y), iter = next(subline, iter)
+
+        marker = (line.markers_filter(x,y)
+                  ? options.marker
+                  : "")
         append!(gen.latex, "/lines",
-                "  ($x,$y)")
+                "  ($x,$y)$marker")
 
         # Other data points
         while !done(subline, iter)
             (x, y), iter = next(subline, iter)
+            draw = options.draw
+            marker = (line.markers_filter(x,y)
+                      ? options.marker
+                      : "")
             append!(gen.latex, "/lines",
-                    "--($x,$y)")
+                    "$draw($x,$y)$marker")
         end
         append!(gen.latex, "/lines", ";")
     end
@@ -134,14 +158,14 @@ function render!(gen::TikzGenerator, axis::Axis)
     end
 
     # Axis
-    append!(gen.latex, "/foreground/axes",
+    append!(gen.latex, "/background/axes",
             @rawsprintf(raw"\draw(%s)--(%s);",
                         _coord(axis.min, axis.pos),
                         _coord(axis.max, axis.pos)))
 
     # Label
     if !isnull(axis.label)
-        append!(gen.latex,"/foreground/axes",
+        append!(gen.latex,"/background/axes",
                 @rawsprintf(raw"\draw(%s)++(%s)",
                             _coord(0.5*(axis.min+axis.max), axis.pos),
                             _coord(0, @sprintf "-%fem" axis.label_shift)) *
@@ -150,7 +174,7 @@ function render!(gen::TikzGenerator, axis::Axis)
 
     # Ticks
     for (x, label) in axis.ticks
-        append!(gen.latex, "/foreground/axes", [
+        append!(gen.latex, "/background/axes", [
             @rawsprintf(raw"\draw(%s)++(%s)--++(%s)",
                         _coord(x, axis.pos),
                         _coord(0, "0.5em"),

@@ -1,27 +1,16 @@
-mutable struct Line
-    title     :: Nullable{String}
-    line      :: Bool
+mutable struct LineProperties
     color     :: Int
-    markers   :: Nullable{Int}
+    marker    :: Int
     pattern   :: Int
     thickness :: Int
-    points    :: Vector{Vector{Tuple{Float32, Float32}}}
 
-    Line() = begin
-        l = new()
-        l.title = Nullable{String}()
-        l.line = true
-        l.points = []
-        return l
-    end
+    LineProperties() = new(0, 0, 0, 0)
 end
 
-@chainable function style!(line :: Line; kwargs...)
-    for (name, val) in kwargs
-        setfield!(line, name,
-                  convert(typeof(getfield(line, name)), val))
+macro next(sym)
+    quote
+        $(esc(sym)) += 1
     end
-    return line
 end
 
 
@@ -39,6 +28,8 @@ mutable struct Plot
 
     data  :: Vector{Line}
 
+    line :: LineProperties
+
     Plot() = begin
         p = new()
         p.title = Nullable{String}()
@@ -52,6 +43,7 @@ mutable struct Plot
 
         p.data = []
         p.style = Style()
+        p.line = LineProperties()
         return p
     end
 end
@@ -61,6 +53,7 @@ dashed!(plot, activate=true) = dashed!(plot.style, activate)
 
 function Plot(fun, output::String)
     p = Plot()
+
     fun(p)
 
     update!(p.x)
@@ -81,6 +74,9 @@ end
 
     l = Line()
     l.title = title
+    l.color = @next p.line.color
+    l.pattern = @next p.line.pattern
+    l.thickness = @next p.line.thickness
 
     push!(l.points, Vector{Tuple{Float32, Float32}}(0))
     j = 1

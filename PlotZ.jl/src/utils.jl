@@ -66,3 +66,10 @@ end
 function Base.done{T}(array :: rowIterator{T}, i :: Int)
     return i > size(array.a, 1)
 end
+
+macro rawsprintf(fmt, val...)
+    fmt = eval(fmt)
+    quote
+        @sprintf $fmt $(map(esc, val)...)
+    end
+end
