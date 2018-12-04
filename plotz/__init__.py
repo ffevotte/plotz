@@ -33,7 +33,7 @@ import numbers
 import plotz.utils
 from plotz.backend import StrictPrototype, TikzGenerator
 
-__all__ = ["Plot", "Axis", "Legend", "Style", "Line", "Function", "DataFile"]
+__all__ = ["Plot", "Axis", "Legend", "Style", "Line", "Function", "DataFile", "Steps"]
 
 class Function(object):
     """Data generator for python functions
@@ -103,6 +103,40 @@ def DataFile(filename, sep=re.compile(r"\s+"), comment="#"):
                     pass
 
             yield fields
+
+def Steps(generator):
+    """Data generator for staircased values
+
+    This generator takes an original generator producing data points, and
+    produces the corresponding staircase steps. Each step starts from an
+    original point, goes horizontally from there, then vertically to reach the
+    next data point.
+
+    Example (original data points are marked by "X"):
+
+                X---------
+                |        |
+                |        X-----
+           X-----             |
+                              X
+
+    Args:
+      generator:  original data generator
+
+    """
+    it = generator.__iter__()
+    (x, y) = next(it)
+    yield (x,y)
+    while True:
+        try:
+            (x, yNew) = next(it)
+        except StopIteration:
+            break
+
+        yield (x,y)
+        yield (x,yNew)
+        y = yNew
+
 
 class Axis(StrictPrototype):
     """Plot axis
