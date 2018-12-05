@@ -125,11 +125,11 @@ def Steps(generator):
 
     """
     it = generator.__iter__()
-    (x, y) = next(it)
+    (x, y) = next(it)[0:2]
     yield (x,y)
     while True:
         try:
-            (x, yNew) = next(it)
+            (x, yNew) = next(it)[0:2]
         except StopIteration:
             break
 

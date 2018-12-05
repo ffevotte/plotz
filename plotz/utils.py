@@ -28,13 +28,25 @@ from plotz.backend import consumer
 def ppfloat(x, fmt="%f"):
     """Return a pretty string representing the given float.
 All useless trailing zeros are removed."""
+    def aux(res):
+        if res.find(".") >= 0:
+            while res.endswith("0"):
+                res = res[0:len(res)-1]
+            if res.endswith("."):
+                res = res[0:len(res)-1]
+        return res
+
     res = fmt % x
-    if res.find(".") >= 0:
-        while res.endswith("0"):
-            res = res[0:len(res)-1]
-        if res.endswith("."):
-            res = res[0:len(res)-1]
-    return res
+    if res.find("e") >= 0:
+        (mantissa, _, exp) = res.partition("e")
+        mantissa = aux(mantissa)
+        exp = int(exp)
+        if(exp == 0):
+            exp = ""
+        else:
+            exp = r"\times10^{%d}" % exp
+        return r"$%s%s$" % (mantissa,exp)
+    return aux(res)
 
 def nth(iterable, n, default=None):
     "Returns the nth item or a default value"
