@@ -211,6 +211,7 @@ class TikzGenerator(object):
                     r"\def\plotz@foreground{", "}")
             .insert("/foreground/axes")
             .insert("/foreground/legend")
+            .insert("/foreground/user")
             .insert("/legend",
                     r"\def\plotz@legend{", "}")
             .insert("/legendmargin",
@@ -252,6 +253,8 @@ class TikzGenerator(object):
                 self._bar(obj, next(ibar))
 
         self._legend()
+
+        self._latex.append("/foreground/user", self._plot.tikz)
         self._compile()
 
 

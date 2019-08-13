@@ -618,6 +618,8 @@ class Plot(StrictPrototype):
         self.line_type = Line
         self.bar_type = Bar
 
+        self.tikz = ""
+
         self._end_init()
 
     def grid(self):
